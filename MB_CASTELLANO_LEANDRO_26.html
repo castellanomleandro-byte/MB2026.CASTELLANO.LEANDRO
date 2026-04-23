@@ -1,0 +1,3058 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Sistema de Márgenes Agrícolas — Leandro Castellano</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<style>
+:root{
+  --verde:#1a4731;--verde-mid:#2d6a4f;--verde-lt:#52b788;--verde-pale:#d8f3dc;
+  --dorado:#c9a84c;--dorado-pale:#fdf6e3;
+  --rojo:#c0392b;--rojo-pale:#fdecea;
+  --amarillo:#f4a429;--azul:#2980b9;--azul-pale:#eaf3fb;
+  --bg:#f7f5f0;--card:#fff;--border:#e8e5de;
+  --text:#1a1a18;--muted:#7a7870;--hint:#b5b2a8;
+  --soja:#c9a84c;--soja-pale:#fdf6e3;--soja-dk:#7a5500;
+  --maiz:#e67e22;--maiz-pale:#fef0e7;--maiz-dk:#7a3800;
+  --girasol:#f39c12;--girasol-pale:#fef9e7;--girasol-dk:#7a5000;
+  --sorgo:#8e44ad;--sorgo-pale:#f5eef8;--sorgo-dk:#5b2c6f;
+  --trigo:#27ae60;--trigo-pale:#eafaf1;--trigo-dk:#1a6b3c;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:15px;}
+
+/* NAV */
+.nav{background:var(--verde);position:sticky;top:0;z-index:200;box-shadow:0 2px 10px rgba(0,0,0,.25);}
+.nav-top{display:flex;align-items:center;gap:12px;padding:10px 16px 8px;border-bottom:1px solid rgba(255,255,255,.1);}
+.nav-brand{flex:1;}
+.nav-name{font-size:17px;font-weight:800;color:#fff;letter-spacing:.04em;}
+.nav-sub{font-size:9px;color:var(--dorado);text-transform:uppercase;letter-spacing:.12em;margin-top:1px;}
+.nav-wap{display:flex;align-items:center;gap:4px;background:#25d366;color:#fff;border-radius:14px;padding:4px 10px;font-size:11px;font-weight:600;text-decoration:none;white-space:nowrap;}
+.nav-tabs{display:flex;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;gap:2px;padding:0 8px;}
+.nav-tabs::-webkit-scrollbar{display:none;}
+.nav-tab{flex-shrink:0;padding:10px 14px;font-size:12px;font-weight:600;color:rgba(255,255,255,.45);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;user-select:none;-webkit-tap-highlight-color:transparent;transition:color .15s;}
+.nav-tab.active,.nav-tab:hover{color:#fff;}
+.nav-tab.active.t-soja{border-bottom-color:var(--soja);}
+.nav-tab.active.t-maiz{border-bottom-color:var(--maiz);}
+.nav-tab.active.t-girasol{border-bottom-color:var(--girasol);}
+.nav-tab.active.t-sorgo{border-bottom-color:var(--sorgo);}
+.nav-tab.active.t-trigo{border-bottom-color:var(--trigo);}
+.nav-tab.active.t-dash,.nav-tab.active.t-comp,.nav-tab.active.t-admin{border-bottom-color:var(--dorado);}
+
+/* LAYOUT */
+.page{display:none;max-width:1200px;margin:0 auto;padding:16px;}
+.page.active{display:block;}
+
+/* ══ DASHBOARD CARDS ══ */
+.dash-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+@media(min-width:600px){.dash-grid{grid-template-columns:repeat(5,1fr);}}
+.dash-card{background:var(--card);border-radius:10px;border:2px solid var(--border);padding:10px 10px 12px;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+.dash-card:active{transform:translateY(-1px);}
+.dash-card.soja{border-color:var(--soja);}
+.dash-card.maiz{border-color:var(--maiz);}
+.dash-card.girasol{border-color:var(--girasol);}
+.dash-card.sorgo{border-color:var(--sorgo);}
+.dash-card.trigo{border-color:var(--trigo);}
+.dash-badge{display:inline-block;padding:2px 8px;border-radius:8px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+.dash-badge.soja{background:var(--soja-pale);color:var(--soja-dk);}
+.dash-badge.maiz{background:var(--maiz-pale);color:var(--maiz-dk);}
+.dash-badge.girasol{background:var(--girasol-pale);color:var(--girasol-dk);}
+.dash-badge.sorgo{background:var(--sorgo-pale);color:var(--sorgo-dk);}
+.dash-badge.trigo{background:var(--trigo-pale);color:var(--trigo-dk);}
+.dash-mb{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;}
+.dash-mb.pos{color:var(--verde-mid);}
+.dash-mb.neg{color:var(--rojo);}
+.dash-mb.warn{color:var(--amarillo);}
+.dash-rinde{font-size:10px;color:var(--muted);margin-top:2px;}
+.dash-sem{display:flex;align-items:center;gap:5px;margin-top:6px;font-size:11px;font-weight:600;}
+.sem-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.sem-ok{color:var(--verde);}.sem-ok .sem-dot{background:var(--verde-mid);}
+.sem-warn{color:#7a5500;}.sem-warn .sem-dot{background:var(--amarillo);}
+.sem-danger{color:var(--rojo);}.sem-danger .sem-dot{background:var(--rojo);}
+
+/* ══ CULTIVO ══ */
+.cult-hdr{border-radius:12px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+.cult-hdr.soja{background:linear-gradient(135deg,#7a5500,var(--soja));}
+.cult-hdr.maiz{background:linear-gradient(135deg,#7a3800,var(--maiz));}
+.cult-hdr.girasol{background:linear-gradient(135deg,#7a5000,var(--girasol));}
+.cult-hdr.sorgo{background:linear-gradient(135deg,#5b2c6f,var(--sorgo));}
+.cult-hdr.trigo{background:linear-gradient(135deg,#1a6b3c,var(--trigo));}
+.cult-hdr-name{font-size:18px;font-weight:800;color:#fff;letter-spacing:.04em;}
+.cult-hdr-sub{font-size:11px;color:rgba(255,255,255,.6);margin-top:2px;}
+
+.two-col{display:grid;grid-template-columns:1fr;gap:14px;}
+@media(min-width:700px){.two-col{grid-template-columns:340px 1fr;align-items:start;}}
+
+/* SLIDERS */
+.sldr-panel{background:var(--card);border-radius:12px;border:1px solid var(--border);overflow:hidden;}
+.slbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;padding:10px 14px 5px;background:var(--card);border-top:1px solid var(--border);display:block;}
+.slbl:first-child{border-top:none;}
+.srow{background:var(--card);padding:8px 14px 10px;border-bottom:1px solid var(--border);}
+.srow-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;}
+.srow-name{font-size:13px;color:var(--text);}
+.srow-val{font-size:14px;font-weight:700;color:var(--verde-mid);font-variant-numeric:tabular-nums;}
+.srow-hint{font-size:10px;color:var(--hint);margin-top:2px;}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;outline:none;cursor:pointer;border:none;padding:0;margin:4px 0;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;background:var(--verde-mid);box-shadow:0 2px 6px rgba(0,0,0,.2);cursor:pointer;}
+input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;background:var(--verde-mid);border:none;}
+.trow{background:var(--card);display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);font-size:13px;gap:12px;}
+.switch{position:relative;width:44px;height:26px;flex-shrink:0;}
+.switch input{opacity:0;width:0;height:0;position:absolute;}
+.sw{position:absolute;inset:0;background:#ccc;border-radius:26px;cursor:pointer;transition:.2s;}
+.sw::before{content:'';position:absolute;width:20px;height:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 4px rgba(0,0,0,.2);}
+.switch input:checked+.sw{background:var(--verde-mid);}
+.switch input:checked+.sw::before{transform:translateX(18px);}
+
+/* RESULTADOS */
+.kgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.kpi{background:var(--card);border-radius:10px;padding:11px 13px;border:1px solid var(--border);}
+.kpi-lbl{font-size:11px;color:var(--muted);margin-bottom:3px;}
+.kpi-val{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;}
+.pos{color:var(--verde-mid);}.neg{color:var(--rojo);}.warn{color:var(--amarillo);}
+.total-box{border-radius:12px;padding:13px 16px;display:flex;justify-content:space-between;align-items:center;border:2px solid;margin-bottom:12px;}
+.total-box.pos{background:var(--verde-pale);border-color:var(--verde-lt);}
+.total-box.neg{background:var(--rojo-pale);border-color:#e88;}
+.total-box.warn{background:var(--dorado-pale);border-color:#e0c060;}
+.total-lbl{font-size:13px;font-weight:700;letter-spacing:.03em;}
+.total-box.pos .total-lbl{color:var(--verde);}.total-box.neg .total-lbl{color:var(--rojo);}.total-box.warn .total-lbl{color:#7a5500;}
+.total-val{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;}
+.total-box.pos .total-val{color:var(--verde-mid);}.total-box.neg .total-val{color:var(--rojo);}.total-box.warn .total-val{color:#b8860b;}
+.pe-box{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:12px;margin-bottom:12px;}
+.pe-title{font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text);margin-bottom:10px;text-transform:uppercase;}
+.pe-row{display:flex;align-items:center;gap:10px;margin-bottom:7px;}
+.pe-lbl{font-size:11px;color:var(--muted);width:68px;flex-shrink:0;}
+.pe-bg{flex:1;background:#eeecea;border-radius:4px;height:14px;overflow:hidden;}
+.pe-fill{height:100%;border-radius:4px;transition:width .4s;}
+.pe-v{font-size:12px;font-weight:700;width:58px;text-align:right;flex-shrink:0;}
+.pe-diff{display:flex;justify-content:space-between;background:#f5f4f0;border-radius:7px;padding:8px 12px;font-size:12px;margin-top:4px;}
+.alerta{border-radius:10px;padding:9px 12px;font-size:12px;line-height:1.5;margin-bottom:12px;border:1px solid;}
+.alerta.ok{background:var(--verde-pale);border-color:var(--verde-lt);color:var(--verde);}
+.alerta.warn{background:var(--dorado-pale);border-color:#e0c060;color:#7a5500;}
+.alerta.danger{background:var(--rojo-pale);border-color:#e88;color:var(--rojo);}
+.chart-wrap{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:13px;margin-bottom:12px;}
+.chart-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;}
+.chart-container{position:relative;height:180px;}
+
+/* DETALLE MARGEN CON % */
+.det-card{background:var(--card);border-radius:12px;border:1px solid var(--border);overflow:hidden;margin-bottom:12px;}
+.det-hdr{background:var(--verde);color:#fff;padding:8px 14px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;display:flex;justify-content:space-between;}
+.drow{display:grid;grid-template-columns:1fr auto auto auto;align-items:center;padding:6px 14px;border-bottom:1px solid var(--border);gap:6px;}
+.drow:last-child{border-bottom:none;}
+.drow:nth-child(even){background:#fafaf7;}
+.drow-lbl{font-size:12px;font-weight:500;}
+.drow-note{font-size:10px;color:var(--hint);text-align:right;}
+.drow-val{font-size:13px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums;text-align:right;}
+.drow-pct{font-size:11px;font-weight:700;padding:3px 8px;border-radius:5px;white-space:nowrap;min-width:40px;text-align:center;}
+.pct-high{background:#fdecea;color:#c0392b;}
+.pct-mid{background:#fdf6e3;color:#7a5500;}
+.pct-low{background:#d8f3dc;color:#1a4731;}
+.dsub{background:#f0f7f4;display:grid;grid-template-columns:1fr auto auto auto;padding:7px 14px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--border);gap:6px;align-items:center;font-weight:600;}
+
+/* ESCENARIOS */
+.esc-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:14px;}
+@media(max-width:460px){.esc-grid{grid-template-columns:repeat(3,1fr);}}
+.esc-card{background:var(--card);border:2px solid var(--border);border-radius:9px;padding:8px 4px;cursor:pointer;text-align:center;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+.esc-card.active{border-color:var(--verde-mid);background:#f0faf5;}
+.esc-name{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:2px;}
+.esc-qq{font-size:15px;font-weight:700;}
+.esc-mg{font-size:10px;font-weight:600;margin-top:2px;}
+
+/* ══ INSUMOS DETALLE POR CULTIVO ══ */
+.ins-section{background:var(--card);border-radius:12px;border:1px solid var(--border);overflow:hidden;margin-bottom:12px;}
+.ins-hdr{padding:10px 14px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center;color:#fff;}
+.ins-hdr.soja{background:var(--soja);}
+.ins-hdr.maiz{background:var(--maiz);}
+.ins-hdr.girasol{background:var(--girasol);}
+.ins-hdr.sorgo{background:var(--sorgo);}
+.ins-hdr.trigo{background:var(--trigo);}
+.ins-cat-hdr{display:flex;justify-content:space-between;padding:6px 14px;background:#f5f4f0;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--border);}
+.ins-row{display:grid;grid-template-columns:1fr 70px 70px 60px 28px;gap:6px;align-items:center;padding:7px 14px;border-bottom:1px solid var(--border);}
+.ins-row:last-child{border-bottom:none;}
+.ins-name-inp{padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;background:#fafaf7;width:100%;font-family:inherit;color:var(--text);}
+.ins-num-inp{padding:5px 6px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;text-align:right;background:#fafaf7;width:100%;font-family:inherit;color:var(--text);}
+.ins-name-inp:focus,.ins-num-inp:focus{outline:none;border-color:var(--verde-mid);background:#fff;}
+.ins-total{font-size:12px;font-weight:600;color:var(--text);text-align:right;font-variant-numeric:tabular-nums;}
+.ins-del{width:26px;height:26px;background:var(--rojo-pale);color:var(--rojo);border:none;border-radius:6px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-tap-highlight-color:transparent;}
+.ins-cat-total{display:flex;justify-content:space-between;padding:6px 14px;background:#f0f7f4;font-size:11px;color:var(--verde);font-weight:700;border-bottom:1px solid var(--border);}
+.add-ins-btn{width:100%;padding:8px;background:transparent;color:var(--verde-mid);border:1.5px dashed var(--verde-lt);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent;}
+.ins-col-hdr{display:grid;grid-template-columns:1fr 70px 70px 60px 28px;gap:6px;padding:5px 14px;background:#f9f8f5;font-size:10px;color:var(--hint);font-weight:700;text-transform:uppercase;border-bottom:1px solid var(--border);}
+.ins-col-hdr span{text-align:right;}.ins-col-hdr span:first-child{text-align:left;}
+.cat-select{padding:4px 6px;border:1.5px solid var(--border);border-radius:6px;font-size:11px;background:#fafaf7;font-family:inherit;color:var(--text);cursor:pointer;}
+
+/* ══ COMPARATIVAS ══ */
+.comp-controls{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:14px;margin-bottom:14px;}
+.comp-ctrl-title{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px;}
+.comp-ctrl-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.ctrl-group{display:flex;flex-direction:column;gap:6px;}
+.ctrl-group-title{font-size:11px;font-weight:700;margin-bottom:2px;}
+.ctrl-group-title.soja{color:var(--soja-dk);}
+.ctrl-group-title.maiz{color:var(--maiz-dk);}
+.ctrl-group-title.girasol{color:var(--girasol-dk);}
+.ctrl-group-title.sorgo{color:var(--sorgo-dk);}
+.ctrl-group-title.trigo{color:var(--trigo-dk);}
+.ctrl-row{display:flex;align-items:center;gap:8px;}
+.ctrl-lbl{font-size:11px;color:var(--muted);width:52px;flex-shrink:0;}
+.ctrl-num{width:64px;padding:5px 8px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;font-weight:600;text-align:right;background:#fafaf7;font-family:inherit;color:var(--text);}
+.ctrl-num:focus{outline:none;border-color:var(--verde-mid);}
+.comp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.comp-card{background:var(--card);border-radius:12px;border:2px solid var(--border);padding:14px;text-align:center;}
+.comp-winner{background:var(--verde-pale);border-color:var(--verde-lt);}
+.comp-cult-name{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;}
+.comp-mb-val{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;}
+.comp-sub{font-size:11px;color:var(--muted);margin-top:3px;}
+.comp-conclusion{background:var(--verde);color:#fff;border-radius:12px;padding:14px 16px;margin-bottom:14px;font-size:13px;line-height:1.6;}
+.comp-conclusion strong{color:var(--dorado);}
+.sens-wrap{overflow-x:auto;}
+.sens-table{width:100%;border-collapse:collapse;font-size:11px;min-width:340px;}
+.sens-table th{background:var(--verde);color:#fff;padding:6px 8px;text-align:center;font-size:10px;}
+.sens-table td{padding:5px 7px;text-align:center;border:1px solid var(--border);}
+.s-pos{background:#d8f3dc;color:#1a4731;font-weight:600;}
+.s-neg{background:#fdecea;color:#c0392b;font-weight:600;}
+.s-warn{background:#fdf6e3;color:#7a5500;font-weight:600;}
+
+/* ══ ADMIN ══ */
+.admin-wrap{max-width:640px;margin:0 auto;}
+.admin-lock-screen{padding:28px 16px;text-align:center;}
+.lock-icon{font-size:48px;margin-bottom:12px;}
+.lock-title{font-size:20px;font-weight:700;margin-bottom:6px;}
+.lock-sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
+.lock-pass{width:100%;max-width:220px;padding:12px;border:2px solid var(--border);border-radius:10px;font-size:22px;text-align:center;letter-spacing:.4em;-webkit-appearance:none;font-family:inherit;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;}
+.lock-pass:focus{outline:none;border-color:var(--verde-mid);}
+.lock-btn{display:block;width:100%;max-width:220px;padding:13px;background:var(--verde-mid);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin:0 auto;}
+.lock-error{color:var(--rojo);font-size:12px;margin-top:8px;display:none;}
+.admin-content{display:none;}
+.admin-content.show{display:block;}
+.admin-section{margin-bottom:14px;}
+.admin-sect-hdr{padding:10px 14px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.08em;border-radius:10px 10px 0 0;}
+.admin-sect-hdr.a-soja{background:var(--soja);}
+.admin-sect-hdr.a-maiz{background:var(--maiz);}
+.admin-sect-hdr.a-girasol{background:var(--girasol);}
+.admin-sect-hdr.a-sorgo{background:var(--sorgo);}
+.admin-sect-hdr.a-global{background:var(--verde-mid);}
+.admin-sect-hdr.a-trigo{background:var(--trigo);}
+.admin-sect-body{background:var(--card);border:1px solid var(--border);border-radius:0 0 10px 10px;overflow:hidden;}
+.admin-row{display:flex;justify-content:space-between;align-items:center;padding:9px 14px;border-bottom:1px solid var(--border);gap:10px;}
+.admin-row:last-child{border-bottom:none;}
+.admin-row label{font-size:13px;color:var(--text);flex:1;}
+.admin-unit{font-size:11px;color:var(--hint);margin-right:6px;white-space:nowrap;}
+.admin-inp{width:86px;padding:6px 9px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;font-weight:600;text-align:right;background:#fafaf7;font-family:inherit;}
+.admin-inp:focus{outline:none;border-color:var(--verde-mid);}
+.admin-save-btn{width:100%;padding:14px;background:var(--verde-mid);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px;-webkit-tap-highlight-color:transparent;}
+.admin-save-btn:active{background:var(--verde);}
+.admin-reset-btn{width:100%;padding:10px;background:transparent;color:var(--muted);border:1.5px solid var(--border);border-radius:10px;font-size:13px;cursor:pointer;font-family:inherit;margin-top:8px;}
+.admin-ins-row{display:grid;grid-template-columns:1fr 80px 24px;gap:6px;align-items:center;padding:7px 14px;border-bottom:1px solid var(--border);}
+.admin-ins-row:last-child{border-bottom:none;}
+.add-ins-btn-admin{width:100%;padding:8px;background:transparent;color:var(--verde-mid);border:1.5px dashed var(--verde-lt);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:4px;}
+
+/* FOOTER */
+.foot{text-align:center;font-size:10px;color:var(--hint);padding:16px;line-height:1.8;}
+
+/* ── FULLSCREEN ── */
+.fs-btn{position:fixed;bottom:68px;right:16px;width:42px;height:42px;background:var(--verde-mid);border:none;border-radius:50%;color:#fff;font-size:18px;cursor:pointer;z-index:150;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.25);-webkit-tap-highlight-color:transparent;}
+.fs-btn:active{background:var(--verde);}
+/* ── ADMIN BTN FIJO ── */
+.admin-float-btn{position:fixed;bottom:16px;right:16px;width:42px;height:42px;background:var(--verde-mid);border:none;border-radius:50%;color:#fff;font-size:18px;cursor:pointer;z-index:150;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.25);-webkit-tap-highlight-color:transparent;}
+.admin-float-btn:active{background:var(--verde);}
+/* nav siempre visible en fullscreen */
+body.fs-mode .foot{display:none!important;}
+body.fs-mode .page.active{height:calc(100vh - 90px);overflow-y:auto;}
+body.fs-mode .page.active{padding-top:10px;}
+
+/* ── PRINT CULTIVO ── */
+.print-cult-btn{display:flex;align-items:center;gap:6px;background:var(--dorado);color:var(--verde);border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent;margin-bottom:14px;}
+.print-cult-btn:active{opacity:.85;}
+@media print{
+  body.printing-cult .nav,body.printing-cult .foot,body.printing-cult .fs-btn,body.printing-cult .admin-float-btn{display:none!important;}
+  body.printing-cult .page{display:none!important;}
+  body.printing-cult #print-output{display:block!important;}
+}
+
+/* ── NAV VME ── */
+.nav-tab.active.t-vme{border-bottom-color:#3498db;}
+
+/* ── VME PAGE ── */
+.vme-hero{background:linear-gradient(135deg,#1a4731,#2d6a4f);border-radius:14px;padding:20px;margin-bottom:16px;color:#fff;}
+.vme-hero-title{font-size:20px;font-weight:800;letter-spacing:.03em;margin-bottom:4px;}
+.vme-hero-sub{font-size:12px;color:rgba(255,255,255,.6);margin-bottom:16px;}
+.vme-hero-desc{font-size:13px;color:rgba(255,255,255,.8);line-height:1.6;background:rgba(0,0,0,.15);border-radius:8px;padding:12px 14px;}
+
+.vme-card{background:var(--card);border-radius:12px;border:1px solid var(--border);overflow:hidden;margin-bottom:14px;}
+.vme-card-hdr{background:var(--verde);color:#fff;padding:10px 14px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center;}
+
+/* Tabla probabilidades */
+.prob-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);}
+.prob-cell{background:var(--card);padding:7px 6px;text-align:center;}
+.prob-cell-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+.prob-cell-val{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;}
+.prob-cell.mm{background:#fdecea;}.prob-cell.mm .prob-cell-label{color:#c0392b;}.prob-cell.mm .prob-cell-val{color:#c0392b;}
+.prob-cell.mn,.prob-cell.bm,.prob-cell.mb,.prob-cell.nb,.prob-cell.bn{background:#fdf6e3;}.prob-cell.mn .prob-cell-label,.prob-cell.bm .prob-cell-label,.prob-cell.mb .prob-cell-label,.prob-cell.nb .prob-cell-label,.prob-cell.bn .prob-cell-label{color:#7a5500;}.prob-cell.mn .prob-cell-val,.prob-cell.bm .prob-cell-val,.prob-cell.mb .prob-cell-val,.prob-cell.nb .prob-cell-val,.prob-cell.bn .prob-cell-val{color:#7a5500;}
+.prob-cell.nm,.prob-cell.nno,.prob-cell.nb2{background:#f5f4f0;}.prob-cell.nm .prob-cell-label{color:var(--muted);}
+.prob-cell.nn{background:#d8f3dc;}.prob-cell.nn .prob-cell-label{color:var(--verde);}.prob-cell.nn .prob-cell-val{color:var(--verde-mid);}
+.prob-cell.bb{background:#d8f3dc;}.prob-cell.bb .prob-cell-label{color:var(--verde);}.prob-cell.bb .prob-cell-val{color:var(--verde-mid);}
+
+/* Tabla rindes */
+.vme-table{width:100%;border-collapse:collapse;font-size:12px;}
+.vme-table th{background:var(--verde);color:#fff;padding:7px 10px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.05em;}
+.vme-table th:first-child{text-align:left;}
+.vme-table td{padding:7px 10px;border-bottom:1px solid var(--border);text-align:center;font-variant-numeric:tabular-nums;}
+.vme-table td:first-child{text-align:left;font-weight:600;}
+.vme-table tr:nth-child(even) td{background:#fafaf7;}
+.vme-cell-bad{background:#fdecea!important;color:#c0392b;font-weight:600;}
+.vme-cell-mid{background:#fdf6e3!important;color:#7a5500;font-weight:600;}
+.vme-cell-good{background:#d8f3dc!important;color:#1a4731;font-weight:600;}
+
+/* Resultado VME */
+.vme-result-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px;}
+@media(min-width:700px){.vme-result-grid{grid-template-columns:repeat(4,1fr);}}
+.vme-result-card{border-radius:10px;border:2px solid var(--border);padding:10px 8px 12px;text-align:center;position:relative;}
+.vme-result-card.winner{border-color:var(--verde-lt);background:var(--verde-pale);}
+.vme-winner-badge{position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--verde-mid);color:#fff;font-size:10px;font-weight:700;padding:2px 12px;border-radius:10px;white-space:nowrap;}
+.vme-cult-name{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+.vme-value{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;margin-bottom:3px;}
+.vme-value.pos{color:var(--verde-mid);}.vme-value.neg{color:var(--rojo);}.vme-value.warn{color:var(--amarillo);}
+.vme-cv-row{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:6px;}
+.vme-cv-label{font-size:10px;color:var(--muted);}
+.vme-cv-val{font-size:13px;font-weight:700;}
+.vme-cv-dot{width:8px;height:8px;border-radius:50%;}
+
+/* Barra VME */
+.vme-bar-row{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--border);}
+.vme-bar-lbl{font-size:12px;font-weight:600;width:110px;flex-shrink:0;}
+.vme-bar-bg{flex:1;background:#eeecea;border-radius:4px;height:18px;overflow:hidden;}
+.vme-bar-fill{height:100%;border-radius:4px;transition:width .5s;}
+.vme-bar-val{font-size:12px;font-weight:700;width:64px;text-align:right;flex-shrink:0;font-variant-numeric:tabular-nums;}
+
+/* Conclusión */
+.vme-conclusion{background:var(--verde);color:#fff;border-radius:12px;padding:16px 18px;margin-bottom:14px;font-size:13px;line-height:1.7;}
+.vme-conclusion strong{color:var(--dorado);}
+.vme-conclusion .vme-concl-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;opacity:.6;margin-bottom:6px;}
+
+/* Parámetros editables */
+.vme-params-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 14px;}
+@media(min-width:500px){.vme-params-grid{grid-template-columns:repeat(4,1fr);}}
+.vme-param{display:flex;flex-direction:column;gap:4px;}
+.vme-param label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;}
+.vme-param input{padding:7px 9px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;font-weight:600;text-align:right;background:#fafaf7;font-family:inherit;}
+.vme-param input:focus{outline:none;border-color:var(--verde-mid);}
+.vme-recalc-btn{width:100%;padding:11px;background:var(--verde-mid);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px;}
+
+/* ── MODO SOLO LECTURA ── */
+body.readonly-mode input[type=range]{pointer-events:none;opacity:.7;}
+body.readonly-mode .cbtn,body.readonly-mode .precios-edit-btn,
+body.readonly-mode .admin-float-btn,body.readonly-mode .nav-tab.t-admin{display:none!important;}
+body.readonly-mode .fs-btn{bottom:16px;}
+.readonly-banner{display:none;background:var(--azul);color:#fff;text-align:center;padding:6px;font-size:12px;font-weight:600;}
+body.readonly-mode .readonly-banner{display:block;}
+::-webkit-scrollbar{height:4px;width:4px;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* ── PRECIOS DASHBOARD ── */
+.precios-bar{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:14px 16px;margin-bottom:14px;}
+.precios-bar-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.precios-bar-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.09em;}
+.precios-edit-btn{background:var(--verde-mid);color:#fff;border:none;border-radius:8px;padding:5px 14px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent;}
+.precios-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+@media(min-width:600px){.precios-grid{grid-template-columns:repeat(4,1fr);}}
+.precio-item{background:#f5f4f0;border-radius:8px;padding:9px 12px;}
+.precio-cult{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;}
+.precio-cult.soja{color:var(--soja-dk);}.precio-cult.maiz{color:var(--maiz-dk);}.precio-cult.girasol{color:var(--girasol-dk);}.precio-cult.sorgo{color:var(--sorgo-dk);}
+.precio-val{font-size:17px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;}
+.precio-sub{font-size:10px;color:var(--hint);margin-top:1px;}
+.precios-edit-panel{display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px;}
+.precios-edit-panel.open{display:block;}
+.precios-edit-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+@media(min-width:600px){.precios-edit-grid{grid-template-columns:repeat(4,1fr);}}
+.pe-field{display:flex;flex-direction:column;gap:4px;}
+.pe-field label{font-size:11px;font-weight:600;color:var(--muted);}
+.pe-field input{padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:14px;font-weight:600;text-align:right;background:#fff;font-family:inherit;}
+.pe-field input:focus{outline:none;border-color:var(--verde-mid);}
+.pe-pass-row{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap;}
+.pe-pass-inp{padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:14px;text-align:center;letter-spacing:.2em;width:110px;font-family:inherit;-webkit-appearance:none;}
+.pe-pass-inp:focus{outline:none;border-color:var(--verde-mid);}
+.pe-save-btn{padding:7px 16px;background:var(--verde-mid);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+
+/* ── INSUMOS TOGGLE ── */
+.ins-detail-body{display:none;}
+.ins-detail-body.open{display:block;}
+
+/* ── INFORME ── */
+.inf-form{max-width:680px;margin:0 auto;}
+.inf-card{background:var(--card);border-radius:12px;border:1px solid var(--border);overflow:hidden;margin-bottom:14px;}
+.inf-card-hdr{background:var(--verde);color:#fff;padding:10px 14px;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;}
+.inf-field{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);gap:12px;}
+.inf-field:last-child{border-bottom:none;}
+.inf-field label{font-size:13px;color:var(--text);flex:1;}
+.inf-inp{padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;color:var(--text);background:#fafaf7;-webkit-appearance:none;}
+.inf-inp:focus{outline:none;border-color:var(--verde-mid);}
+.inf-inp-wide{width:200px;}.inf-inp-sm{width:90px;text-align:right;}
+.campo-card{background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px;}
+.campo-card-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.campo-num{font-size:12px;font-weight:700;color:var(--verde-mid);background:var(--verde-pale);padding:2px 10px;border-radius:10px;}
+.campo-del{background:none;border:none;color:var(--hint);font-size:20px;cursor:pointer;padding:0;}
+.campo-del:hover{color:var(--rojo);}
+.campo-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+@media(min-width:600px){.campo-grid{grid-template-columns:repeat(3,1fr);}}
+.campo-field{display:flex;flex-direction:column;gap:4px;}
+.campo-field label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;}
+.campo-field input,.campo-field select{padding:7px 9px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;color:var(--text);background:#fafaf7;-webkit-appearance:none;width:100%;}
+.campo-field input:focus,.campo-field select:focus{outline:none;border-color:var(--verde-mid);}
+.add-campo-btn{width:100%;padding:10px;background:transparent;color:var(--verde-mid);border:1.5px dashed var(--verde-lt);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:14px;}
+.inf-print-btn{width:100%;padding:14px;background:var(--verde-mid);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;-webkit-tap-highlight-color:transparent;}
+.inf-print-btn:active{background:var(--verde);}
+
+/* ── PRINT ── */
+#print-output{display:none;}
+@media print{
+  .nav,.page,.foot{display:none!important;}
+  #print-output{display:block!important;}
+  body{background:#fff;}
+}
+.print-page{width:210mm;min-height:280mm;padding:14mm 16mm;page-break-after:always;box-sizing:border-box;background:#fff;font-family:'Segoe UI',sans-serif;}
+.print-page:last-child{page-break-after:auto;}
+.print-logo-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6mm;padding-bottom:3mm;border-bottom:2px solid #1a4731;}
+.print-brand{font-size:15pt;font-weight:800;color:#1a4731;}
+.print-brand-sub{font-size:8pt;color:#c9a84c;text-transform:uppercase;letter-spacing:.12em;margin-top:2px;}
+.print-meta-right{text-align:right;font-size:8pt;color:#7a7870;line-height:1.7;}
+.print-cult-badge{display:inline-block;padding:3px 14px;border-radius:12px;font-size:10pt;font-weight:700;text-transform:uppercase;margin-bottom:4mm;}
+.print-section-title{font-size:9pt;font-weight:700;color:#7a7870;text-transform:uppercase;letter-spacing:.09em;border-bottom:1px solid #e8e5de;padding-bottom:2px;margin:4mm 0 2mm;}
+.print-kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm;margin-bottom:4mm;}
+.print-kpi{background:#f7f5f0;border-radius:4px;padding:5px 9px;}
+.print-kpi-lbl{font-size:7pt;color:#7a7870;margin-bottom:1px;}
+.print-kpi-val{font-size:12pt;font-weight:700;font-variant-numeric:tabular-nums;}
+.print-kpi-val.pos{color:#2d6a4f;}.print-kpi-val.neg{color:#c0392b;}.print-kpi-val.warn{color:#f4a429;}
+.print-total-box{border-radius:6px;padding:7px 12px;display:flex;justify-content:space-between;align-items:center;margin-bottom:4mm;border:2px solid;}
+.print-total-box.pos{background:#d8f3dc;border-color:#52b788;}
+.print-total-box.neg{background:#fdecea;border-color:#e88;}
+.print-total-box.warn{background:#fdf6e3;border-color:#e0c060;}
+.print-total-lbl{font-size:9pt;font-weight:700;color:#1a4731;}
+.print-total-val{font-size:17pt;font-weight:800;font-variant-numeric:tabular-nums;}
+.print-table{width:100%;border-collapse:collapse;font-size:8.5pt;}
+.print-table th{background:#1a4731;color:#fff;padding:5px 7px;text-align:left;font-size:8pt;}
+.print-table th:not(:first-child):not(:nth-child(2)){text-align:right;}
+.print-table td{padding:4px 7px;border-bottom:1px solid #e8e5de;}
+.print-table td:not(:first-child):not(:nth-child(2)){text-align:right;font-variant-numeric:tabular-nums;}
+.print-table tr:nth-child(even) td{background:#fafaf7;}
+.print-table tr.subtotal td{background:#f0f7f4;font-weight:700;color:#1a4731;font-size:8pt;}
+.print-table tr.total-row td{background:#1a4731;color:#fff;font-weight:700;}
+.print-campo-info{background:#f5f4f0;border-radius:5px;padding:6px 10px;margin-bottom:4mm;font-size:8.5pt;display:flex;gap:14px;flex-wrap:wrap;}
+.print-campo-info span{color:#7a7870;}.print-campo-info strong{color:#1a1a18;}
+.print-footer{margin-top:6mm;padding-top:3mm;border-top:1px solid #e8e5de;font-size:7.5pt;color:#b5b2a8;display:flex;justify-content:space-between;}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<div class="readonly-banner">👁 Modo vista — solo lectura</div>
+<nav class="nav">
+  <div class="nav-top">
+    <div class="nav-brand">
+      <div class="nav-name">LEANDRO CASTELLANO</div>
+      <div class="nav-sub">Administrador de Empresas | Gestión Comercial Agropecuariapecuaria</div>
+    </div>
+    <a class="nav-wap" href="https://wa.me/543515125003?text=Hola%20Leandro%2C%20vi%20el%20sistema%20de%20m%C3%A1rgenes%20y%20quer%C3%ADa%20consultarte..." target="_blank">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      351-512-5003
+    </a>
+  </div>
+  <div class="nav-tabs">
+    <div class="nav-tab active t-dash" onclick="navTo('dash')">Inicio</div>
+    <div class="nav-tab t-soja" onclick="navTo('soja')">🌱 Soja</div>
+    <div class="nav-tab t-maiz" onclick="navTo('maiz')">🌽 Maíz</div>
+    <div class="nav-tab t-girasol" onclick="navTo('girasol')">🌻 Girasol</div>
+    <div class="nav-tab t-sorgo" onclick="navTo('sorgo')">🌾 Sorgo</div>
+    <div class="nav-tab t-trigo" onclick="navTo('trigo')">🌿 Trigo</div>
+    <div class="nav-tab t-comp" onclick="navTo('comp-sm')">⚡ Soja/Maíz</div>
+    <div class="nav-tab t-comp" onclick="navTo('comp-gs')">⚡ Girasol/Soja</div>
+    <div class="nav-tab t-comp" onclick="navTo('comp-somt')">⚡ Sorgo/Maíz</div>
+    <div class="nav-tab t-vme" onclick="navTo('vme')">📊 VME</div>
+    <div class="nav-tab t-inf" onclick="navTo('informe')">📄 Informe</div>
+    <div class="nav-tab t-admin" onclick="navTo('admin')">⚙ Ajustes</div>
+  </div>
+</nav>
+
+<!-- Botón pantalla completa -->
+<button class="fs-btn" id="fs-btn" onclick="toggleFS()" title="Pantalla completa">⛶</button>
+<button class="admin-float-btn" onclick="navTo('admin')" style="display:none" title="Ajustes">⚙</button>
+
+<!-- ══ INICIO ══ -->
+<div id="page-dash" class="page active">
+  <!-- RESUMEN COMPARTIR — colapsado -->
+  <div style="background:var(--card);border-radius:12px;border:1px solid var(--border);overflow:hidden;margin-bottom:14px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;cursor:pointer;" onclick="toggleDashResumen()">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        <span style="font-size:13px;font-weight:600;color:var(--text);">Compartir resumen por WhatsApp</span>
+        <span id="dash-fecha-act" style="font-size:10px;color:var(--hint);"></span>
+      </div>
+      <span id="dash-resumen-toggle" style="font-size:11px;color:var(--muted);">▶</span>
+    </div>
+    <div id="dash-resumen-body" style="display:none;border-top:1px solid var(--border);padding:14px 16px;">
+      <div id="dash-resumen-texto" style="font-size:13px;color:var(--text);line-height:1.9;background:#f5f4f0;border-radius:8px;padding:12px 14px;margin-bottom:12px;white-space:pre-line;font-family:monospace;"></div>
+      <a id="dash-wap-btn" href="#" target="_blank"
+        style="display:flex;align-items:center;justify-content:center;gap:8px;background:#25d366;color:#fff;border-radius:10px;padding:11px;font-size:13px;font-weight:700;text-decoration:none;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        Abrir en WhatsApp
+      </a>
+    </div>
+  </div>
+
+  <!-- Cards cultivos SIN riesgo (solo MB + rinde + PE) -->
+  <div class="dash-grid" id="dash-grid"></div>
+
+  <!-- Barra de precios compacta -->
+  <div class="precios-bar" id="precios-bar-box">
+    <div class="precios-bar-top">
+      <span class="precios-bar-title">Precios de referencia (USD/tn)</span>
+      <button class="precios-edit-btn" onclick="togglePreciosEdit()">✏ Editar</button>
+    </div>
+    <div class="precios-grid" id="precios-display"></div>
+    <div class="precios-edit-panel" id="precios-edit-panel">
+      <div class="precios-edit-grid" style="margin-bottom:10px;">
+        <div class="pe-field"><label>🌱 Soja</label><input type="number" id="pe-soja" inputmode="numeric"></div>
+        <div class="pe-field"><label>🌽 Maíz</label><input type="number" id="pe-maiz" inputmode="numeric"></div>
+        <div class="pe-field"><label>🌻 Girasol</label><input type="number" id="pe-girasol" inputmode="numeric"></div>
+        <div class="pe-field"><label>🌾 Sorgo</label><input type="number" id="pe-sorgo" inputmode="numeric"></div>
+      </div>
+      <div class="pe-pass-row">
+        <input class="pe-pass-inp" type="password" id="pe-pass" placeholder="clave" inputmode="numeric" onkeydown="if(event.key==='Enter')savePreciosDash()">
+        <button class="pe-save-btn" onclick="savePreciosDash()">Guardar</button>
+        <span class="pe-error" id="pe-error" style="display:none;">Clave incorrecta</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-wrap">
+    <div class="chart-title">Comparativa general — Margen bruto (USD/ha)</div>
+    <div class="chart-container"><canvas id="chart-dash"></canvas></div>
+  </div>
+</div>
+
+
+<!-- INFORME -->
+<div id="page-informe" class="page">
+  <div class="inf-form">
+    <div style="font-size:18px;font-weight:700;margin-bottom:4px;">📄 Informe por Productor</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">Completá los datos y generá un informe imprimible con márgenes brutos y resumen de inversión.</div>
+
+    <!-- Datos del productor -->
+    <div class="inf-card">
+      <div class="inf-card-hdr">Datos del productor</div>
+      <div class="inf-field"><label>Nombre del productor</label><input class="inf-inp inf-inp-wide" type="text" id="inf-nombre" placeholder="Ej: Juan Pérez"></div>
+      <div class="inf-field"><label>Localidad / Zona</label><input class="inf-inp inf-inp-wide" type="text" id="inf-zona" placeholder="Ej: Jesús María"></div>
+      <div class="inf-field"><label>Campaña</label><input class="inf-inp inf-inp-sm" type="text" id="inf-campana" value="2026/27"></div>
+    </div>
+
+    <!-- Campos -->
+    <div class="inf-card">
+      <div class="inf-card-hdr" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>Campos y cultivos</span>
+        <span style="font-size:10px;font-weight:400;opacity:.7;">Podés agregar varios</span>
+      </div>
+      <div style="padding:12px 14px;">
+        <div id="campos-container"></div>
+        <button class="add-campo-btn" onclick="addCampo()">+ Agregar campo / cultivo</button>
+      </div>
+    </div>
+
+    <!-- Botón imprimir -->
+    <button class="inf-print-btn" onclick="generarInforme()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
+      Generar e imprimir informe
+    </button>
+    <div style="font-size:11px;color:var(--hint);text-align:center;margin-top:8px;">Se abrirá el diálogo de impresión con el informe completo</div>
+  </div>
+</div>
+
+<!-- CONTENIDO DE IMPRESIÓN (oculto en pantalla) -->
+<div id="print-output"></div>
+
+
+<!-- VME -->
+<div id="page-vme" class="page">
+
+  <!-- INTRODUCCIÓN VME DESPLEGABLE -->
+  <div style="background:linear-gradient(135deg,#1a4731,#2d6a4f);border-radius:14px;margin-bottom:14px;overflow:hidden;">
+    <div style="padding:18px 20px 16px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;cursor:pointer;" onclick="toggleVmeIntro()">
+      <div>
+        <div style="font-size:18px;font-weight:800;letter-spacing:.03em;color:#fff;margin-bottom:2px;">VALOR MONETARIO ESPERADO</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.1em;">Análisis de decisión bajo incertidumbre · Campaña 2026/27</div>
+      </div>
+      <span id="vme-intro-toggle" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;white-space:nowrap;flex-shrink:0;">▶ Leer más</span>
+    </div>
+    <div id="vme-intro-body" style="display:none;padding:0 20px 18px;">
+      <div style="background:rgba(0,0,0,.2);border-radius:10px;padding:16px;font-size:12px;color:rgba(255,255,255,.88);line-height:1.8;">
+
+        <strong style="color:var(--dorado);font-size:13px;display:block;margin-bottom:8px;">¿Qué es el VME y para qué sirve?</strong>
+        En la agricultura, el resultado de un cultivo depende en gran parte del clima. Un invierno seco perjudica al trigo. Un verano con déficit hídrico le pega a la soja y al maíz. Pero al momento de decidir qué sembrar, nadie sabe cómo va a ser el año.<br><br>
+        El <strong style="color:var(--dorado)">Valor Monetario Esperado (VME)</strong> es una herramienta de análisis de decisiones que responde una pregunta concreta: <em style="color:rgba(255,255,255,.75)">"Dada la incertidumbre climática, ¿qué estrategia de siembra maximiza el ingreso esperado?"</em><br><br>
+
+        <strong style="color:var(--dorado);font-size:13px;display:block;margin-bottom:6px;">¿Cómo se construye?</strong>
+        Se divide el año en dos períodos críticos:<br>
+        • <strong style="color:var(--dorado)">OIP</strong> (Otoño-Invierno-Primavera): determina el resultado del <strong>trigo</strong>.<br>
+        • <strong style="color:var(--dorado)">PVO</strong> (Primavera-Verano-Otoño): determina el resultado de <strong>soja y maíz</strong>.<br><br>
+        Cada período puede resultar Malo, Neutro o Bueno. Combinando los dos períodos se obtienen <strong style="color:var(--dorado)">9 escenarios posibles</strong>. A cada uno se le asigna una probabilidad según su frecuencia histórica.<br><br>
+
+        <strong style="color:var(--dorado);font-size:13px;display:block;margin-bottom:6px;">¿Cómo se asignan las probabilidades?</strong>
+        Se supone que cada período puede ser Malo (25%), Neutro (50%) o Bueno (25%), y que OIP y PVO son independientes entre sí. Entonces:<br>
+        • <strong>M/M</strong> = 25% × 25% = <strong>6.25%</strong><br>
+        • <strong>M/N</strong> = 25% × 50% = <strong>12.5%</strong><br>
+        • <strong>N/N</strong> = 50% × 50% = <strong style="color:var(--dorado)">25%</strong> ← el más probable<br>
+        • <strong>B/B</strong> = 25% × 25% = <strong>6.25%</strong><br>
+        La suma de los 9 escenarios siempre da 100%.<br><br>
+
+        <strong style="color:var(--dorado);font-size:13px;display:block;margin-bottom:6px;">¿Cómo se calcula el VME?</strong>
+        Para cada alternativa (ej: sembrar solo soja) se estima el margen bruto en cada uno de los 9 escenarios. Luego se multiplica cada margen por su probabilidad y se suman. El resultado es el <strong style="color:var(--dorado)">margen bruto promedio ponderado</strong> que obtendría esa alternativa si el año se repite muchas veces.<br>
+        <em style="color:rgba(255,255,255,.65);font-size:11px;">Ejemplo: si en N/N el margen es USD 200/ha con probabilidad 25%, ese escenario aporta USD 50 al VME total.</em><br><br>
+
+        <strong style="color:var(--dorado);font-size:13px;display:block;margin-bottom:6px;">¿Qué es el Coeficiente de Variación (C.V.)?</strong>
+        El VME dice cuánto se gana <em>en promedio</em>, pero no dice cuánto puede variar. El C.V. mide exactamente eso: es el desvío estándar dividido el VME. <strong style="color:var(--dorado)">Un C.V. de 0.50 significa que el margen puede variar ±50% respecto al promedio esperado.</strong><br>
+        • C.V. &lt; 1.0 → <strong style="color:#52b788;">Riesgo bajo</strong> — resultado estable y predecible<br>
+        • C.V. 1.0–2.0 → <strong style="color:var(--amarillo);">Riesgo medio</strong> — variabilidad moderada<br>
+        • C.V. &gt; 2.0 → <strong style="color:#ff8a80;">Riesgo alto</strong> — resultado muy incierto<br><br>
+
+        <strong style="color:var(--dorado);font-size:13px;display:block;margin-bottom:6px;">¿Cómo usar esta herramienta?</strong>
+        1. Seleccioná cómo ves el año actual (OIP y PVO) para ver el resultado del escenario más probable.<br>
+        2. Comparás el VME de cada alternativa para decidir qué conviene en el largo plazo.<br>
+        3. Usás el C.V. para evaluar el riesgo: a veces conviene resignar algo de VME a cambio de mayor estabilidad.<br>
+        <em style="color:rgba(255,255,255,.6);font-size:11px;">Los precios y costos usados son los que vos cargaste en el sistema. Si los actualizás en Ajustes, el VME se recalcula automáticamente.</em>
+      </div>
+    </div>
+  </div>
+
+  <!-- SELECTOR DEL AÑO -->
+  <div class="vme-card">
+    <div class="vme-card-hdr"><span>¿Cómo ves el año?</span><span style="font-size:10px;font-weight:400;opacity:.7;">Seleccioná y se resalta el escenario</span></div>
+    <div style="padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">OIP — Otoño/Invierno/Primavera</div>
+        <div style="font-size:10px;color:var(--hint);margin-bottom:8px;">Afecta principalmente al <strong>Trigo</strong></div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 12px;border-radius:8px;border:2px solid var(--border);font-size:13px;" id="lbl-oip-m" onclick="setOIP('M')">
+            <input type="radio" name="oip" value="M" id="oip-m" style="display:none;">
+            <span id="dot-oip-m" style="width:16px;height:16px;border-radius:50%;border:2px solid #ccc;flex-shrink:0;"></span>
+            <span>Malo</span><span style="margin-left:auto;font-size:11px;color:var(--hint);">Seco / frío</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 12px;border-radius:8px;border:2px solid var(--verde-mid);background:#f0faf5;font-size:13px;" id="lbl-oip-n" onclick="setOIP('N')">
+            <input type="radio" name="oip" value="N" id="oip-n" checked style="display:none;">
+            <span id="dot-oip-n" style="width:16px;height:16px;border-radius:50%;background:var(--verde-mid);border:2px solid var(--verde-mid);flex-shrink:0;"></span>
+            <span><strong>Neutro</strong></span><span style="margin-left:auto;font-size:11px;color:var(--hint);">Normal</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 12px;border-radius:8px;border:2px solid var(--border);font-size:13px;" id="lbl-oip-b" onclick="setOIP('B')">
+            <input type="radio" name="oip" value="B" id="oip-b" style="display:none;">
+            <span id="dot-oip-b" style="width:16px;height:16px;border-radius:50%;border:2px solid #ccc;flex-shrink:0;"></span>
+            <span>Bueno</span><span style="margin-left:auto;font-size:11px;color:var(--hint);">Lluvioso</span>
+          </label>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">PVO — Primavera/Verano/Otoño</div>
+        <div style="font-size:10px;color:var(--hint);margin-bottom:8px;">Afecta principalmente a <strong>Soja y Maíz</strong></div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 12px;border-radius:8px;border:2px solid var(--border);font-size:13px;" id="lbl-pvo-m" onclick="setPVO('M')">
+            <input type="radio" name="pvo" value="M" id="pvo-m" style="display:none;">
+            <span id="dot-pvo-m" style="width:16px;height:16px;border-radius:50%;border:2px solid #ccc;flex-shrink:0;"></span>
+            <span>Malo</span><span style="margin-left:auto;font-size:11px;color:var(--hint);">Seco / caluroso</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 12px;border-radius:8px;border:2px solid var(--verde-mid);background:#f0faf5;font-size:13px;" id="lbl-pvo-n" onclick="setPVO('N')">
+            <input type="radio" name="pvo" value="N" id="pvo-n" checked style="display:none;">
+            <span id="dot-pvo-n" style="width:16px;height:16px;border-radius:50%;background:var(--verde-mid);border:2px solid var(--verde-mid);flex-shrink:0;"></span>
+            <span><strong>Neutro</strong></span><span style="margin-left:auto;font-size:11px;color:var(--hint);">Normal</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 12px;border-radius:8px;border:2px solid var(--border);font-size:13px;" id="lbl-pvo-b" onclick="setPVO('B')">
+            <input type="radio" name="pvo" value="B" id="pvo-b" style="display:none;">
+            <span id="dot-pvo-b" style="width:16px;height:16px;border-radius:50%;border:2px solid #ccc;flex-shrink:0;"></span>
+            <span>Bueno</span><span style="margin-left:auto;font-size:11px;color:var(--hint);">Lluvioso</span>
+          </label>
+        </div>
+      </div>
+    </div>
+    <!-- Escenario seleccionado destacado -->
+    <div style="margin:0 14px 14px;padding:10px 14px;border-radius:8px;background:var(--dorado-pale);border:1.5px solid var(--dorado);">
+      <div style="font-size:10px;font-weight:700;color:#7a5500;text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;">Escenario seleccionado</div>
+      <div id="vme-esc-seleccionado" style="font-size:15px;font-weight:700;color:#7a5500;">N/N — Año normal</div>
+      <div id="vme-esc-prob" style="font-size:11px;color:#7a5500;margin-top:2px;opacity:.7;">Probabilidad: 25%</div>
+    </div>
+  </div>
+
+  <!-- TABLA COMPACTA 9 ESCENARIOS -->
+  <div class="vme-card">
+    <div class="vme-card-hdr" style="cursor:pointer;" onclick="toggleVmeTable()">
+      <span>Tabla de probabilidades y rindes</span>
+      <span id="vme-table-toggle" style="font-size:11px;background:rgba(255,255,255,.2);padding:3px 10px;border-radius:12px;">▼ Ocultar</span>
+    </div>
+    <div id="vme-table-body">
+      <div style="overflow-x:auto;">
+        <table class="vme-table" style="font-size:11px;">
+          <thead><tr>
+            <th style="min-width:90px;">Alternativa</th>
+            <th class="vme-th-mm">M/M<br><span style="font-size:8px;opacity:.7;">6.25%</span></th>
+            <th>M/N<br><span style="font-size:8px;opacity:.7;">12.5%</span></th>
+            <th>M/B<br><span style="font-size:8px;opacity:.7;">6.25%</span></th>
+            <th>N/M<br><span style="font-size:8px;opacity:.7;">12.5%</span></th>
+            <th style="background:#1a6b3c;">N/N★<br><span style="font-size:8px;opacity:.7;">25%</span></th>
+            <th>N/B<br><span style="font-size:8px;opacity:.7;">12.5%</span></th>
+            <th>B/M<br><span style="font-size:8px;opacity:.7;">6.25%</span></th>
+            <th>B/N<br><span style="font-size:8px;opacity:.7;">12.5%</span></th>
+            <th>B/B<br><span style="font-size:8px;opacity:.7;">6.25%</span></th>
+          </tr></thead>
+          <tbody id="vme-margenes-body"></tbody>
+        </table>
+      </div>
+      <div style="padding:8px 14px;font-size:10px;color:var(--hint);">★ Escenario más probable. Verde &gt; USD 50/ha · Amarillo USD 0–50 · Rojo negativo</div>
+    </div>
+  </div>
+
+  <!-- PARÁMETROS COMPACTOS -->
+  <div class="vme-card">
+    <div class="vme-card-hdr" style="cursor:pointer;" onclick="toggleVmeParams()">
+      <span>Parámetros de rindes</span>
+      <span id="vme-params-toggle" style="font-size:11px;background:rgba(255,255,255,.2);padding:3px 10px;border-radius:12px;">▶ Ver / editar</span>
+    </div>
+    <div id="vme-params-body" style="display:none;padding:12px 14px;">
+      <!-- SOJA 1° -->
+      <div style="background:var(--soja-pale);border-radius:8px;padding:10px 12px;margin-bottom:8px;border-left:3px solid var(--soja);">
+        <div style="font-size:10px;font-weight:700;color:var(--soja-dk);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">🌱 Soja 1° — depende del verano (PVO)</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+          <div><div style="font-size:10px;color:var(--soja-dk);margin-bottom:3px;">PVO Malo</div><input type="number" id="vme-r-s1-mal" value="23" style="width:100%;padding:6px 8px;border:1.5px solid var(--soja);border-radius:6px;font-size:13px;font-weight:600;text-align:right;background:#fff;font-family:inherit;"></div>
+          <div><div style="font-size:10px;color:var(--soja-dk);margin-bottom:3px;">PVO Neutro</div><input type="number" id="vme-r-s1-nor" value="30" style="width:100%;padding:6px 8px;border:1.5px solid var(--soja);border-radius:6px;font-size:13px;font-weight:600;text-align:right;background:#fff;font-family:inherit;"></div>
+          <div><div style="font-size:10px;color:var(--soja-dk);margin-bottom:3px;">PVO Bueno</div><input type="number" id="vme-r-s1-bue" value="35" style="width:100%;padding:6px 8px;border:1.5px solid var(--soja);border-radius:6px;font-size:13px;font-weight:600;text-align:right;background:#fff;font-family:inherit;"></div>
+        </div>
+      </div>
+      <!-- TRIGO -->
+      <div style="background:var(--trigo-pale);border-radius:8px;padding:10px 12px;margin-bottom:8px;border-left:3px solid var(--trigo);">
+        <div style="font-size:10px;font-weight:700;color:var(--trigo-dk);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">🌿 Trigo — depende del invierno (OIP)</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+          <div><div style="font-size:10px;color:var(--trigo-dk);margin-bottom:3px;">OIP Malo</div><input type="number" id="vme-r-tri-mal" value="16" style="width:100%;padding:6px 8px;border:1.5px solid var(--trigo);border-radius:6px;font-size:13px;font-weight:600;text-align:right;background:#fff;font-family:inherit;"></div>
+          <div><div style="font-size:10px;color:var(--trigo-dk);margin-bottom:3px;">OIP Neutro</div><input type="number" id="vme-r-tri-nor" value="23" style="width:100%;padding:6px 8px;border:1.5px solid var(--trigo);border-radius:6px;font-size:13px;font-weight:600;text-align:right;background:#fff;font-family:inherit;"></div>
+          <div><div style="font-size:10px;color:var(--trigo-dk);margin-bottom:3px;">OIP Bueno</div><input type="number" id="vme-r-tri-bue" value="27" style="width:100%;padding:6px 8px;border:1.5px solid var(--trigo);border-radius:6px;font-size:13px;font-weight:600;text-align:right;background:#fff;font-family:inherit;"></div>
+        </div>
+      </div>
+      <!-- SOJA 2° -->
+      <div style="background:#f0faf5;border-radius:8px;padding:10px 12px;margin-bottom:8px;border-left:3px solid var(--verde-mid);">
+        <div style="font-size:10px;font-weight:700;color:var(--verde);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">🌱 Soja 2° — depende de ambos (OIP+PVO)</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">
+          <div><div style="font-size:9px;color:var(--verde);margin-bottom:3px;">M/M</div><input type="number" id="vme-r-s2-mm" value="20" style="width:100%;padding:5px 7px;border:1.5px solid var(--verde-lt);border-radius:6px;font-size:12px;font-weight:600;text-align:right;background:#fff;font-family:inherit;"></div>
+          <div><div style="font-size:9px;color:var(--verde);margin-bottom:3px;">M/N</div><input type="number" id="vme-r-s2-mn" value="27" style="width:100%;padding:5px 7px;border:1.5px solid var(--verde-lt);border-radius:6px;font-size:12px;font-weight:600;text-align:right;background:#fff;font-family:inherit;"></div>
+          <div><div style="font-size:9px;color:var(--verde);margin-bottom:3px;">M/B</div><input type="number" id="vme-r-s2-mb" value="33" style="width:100%;padding:5px 7px;border:1.5px solid var(--verde-lt);border-radius:6px;font-size:12px;font-weight:600;text-align:right;background:#fff;font-family:inherit;"></div>
+          <div><div style="font-size:9px;color:var(--verde);margin-bottom:3px;">N/M</div><input type="number" id="vme-r-s2-nm" value="19" style="width:100%;padding:5px 7px;border:1.5px solid var(--verde-lt);border-radius:6px;font-size:12px;font-weight:600;text-align:right;background:#fff;font-family:inherit;"></div>
+          <div><div style="font-size:9px;color:var(--verde);margin-bottom:3px;">N/N</div><input type="number" id="vme-r-s2-nn" value="29" style="width:100%;padding:5px 7px;border:1.5px solid var(--verde-lt);border-radius:6px;font-size:12px;font-weight:600;text-align:right;background:#fff;font-family:inherit;"></div>
+          <div><div style="font-size:9px;color:var(--verde);margin-bottom:3px;">N/B</div><input type="number" id="vme-r-s2-nb" value="32" style="width:100%;padding:5px 7px;border:1.5px solid var(--verde-lt);border-radius:6px;font-size:12px;font-weight:600;text-align:right;background:#fff;font-family:inherit;"></div>
+          <div><div style="font-size:9px;color:var(--verde);margin-bottom:3px;">B/M</div><input type="number" id="vme-r-s2-bm" value="17" style="width:100%;padding:5px 7px;border:1.5px solid var(--verde-lt);border-radius:6px;font-size:12px;font-weight:600;text-align:right;background:#fff;font-family:inherit;"></div>
+          <div><div style="font-size:9px;color:var(--verde);margin-bottom:3px;">B/N</div><input type="number" id="vme-r-s2-bn" value="26" style="width:100%;padding:5px 7px;border:1.5px solid var(--verde-lt);border-radius:6px;font-size:12px;font-weight:600;text-align:right;background:#fff;font-family:inherit;"></div>
+          <div><div style="font-size:9px;color:var(--verde);margin-bottom:3px;">B/B</div><input type="number" id="vme-r-s2-bb" value="33" style="width:100%;padding:5px 7px;border:1.5px solid var(--verde-lt);border-radius:6px;font-size:12px;font-weight:600;text-align:right;background:#fff;font-family:inherit;"></div>
+        </div>
+      </div>
+      <!-- MAÍZ -->
+      <div style="background:var(--maiz-pale);border-radius:8px;padding:10px 12px;margin-bottom:8px;border-left:3px solid var(--maiz);">
+        <div style="font-size:10px;font-weight:700;color:var(--maiz-dk);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">🌽 Maíz — depende del verano (PVO)</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+          <div><div style="font-size:10px;color:var(--maiz-dk);margin-bottom:3px;">PVO Malo</div><input type="number" id="vme-r-mz-mal" value="55" style="width:100%;padding:6px 8px;border:1.5px solid var(--maiz);border-radius:6px;font-size:13px;font-weight:600;text-align:right;background:#fff;font-family:inherit;"></div>
+          <div><div style="font-size:10px;color:var(--maiz-dk);margin-bottom:3px;">PVO Neutro</div><input type="number" id="vme-r-mz-nor" value="78" style="width:100%;padding:6px 8px;border:1.5px solid var(--maiz);border-radius:6px;font-size:13px;font-weight:600;text-align:right;background:#fff;font-family:inherit;"></div>
+          <div><div style="font-size:10px;color:var(--maiz-dk);margin-bottom:3px;">PVO Bueno</div><input type="number" id="vme-r-mz-bue" value="90" style="width:100%;padding:6px 8px;border:1.5px solid var(--maiz);border-radius:6px;font-size:13px;font-weight:600;text-align:right;background:#fff;font-family:inherit;"></div>
+        </div>
+      </div>
+      <!-- MAÍZ TARDÍO para Trigo+Maíz tardío -->
+      <div style="background:#f0f4ff;border-radius:8px;padding:10px 12px;margin-bottom:10px;border-left:3px solid #5d6fc7;">
+        <div style="font-size:10px;font-weight:700;color:#3a4a9a;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;">🌽 Maíz tardío (para Trigo+Maíz tardío)</div>
+        <div style="font-size:10px;color:#5d6fc7;margin-bottom:8px;">Rinde menor al maíz de 1° por fecha de siembra</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+          <div><div style="font-size:10px;color:#3a4a9a;margin-bottom:3px;">PVO Malo</div><input type="number" id="vme-r-mzt-mal" value="45" style="width:100%;padding:6px 8px;border:1.5px solid #5d6fc7;border-radius:6px;font-size:13px;font-weight:600;text-align:right;background:#fff;font-family:inherit;"></div>
+          <div><div style="font-size:10px;color:#3a4a9a;margin-bottom:3px;">PVO Neutro</div><input type="number" id="vme-r-mzt-nor" value="65" style="width:100%;padding:6px 8px;border:1.5px solid #5d6fc7;border-radius:6px;font-size:13px;font-weight:600;text-align:right;background:#fff;font-family:inherit;"></div>
+          <div><div style="font-size:10px;color:#3a4a9a;margin-bottom:3px;">PVO Bueno</div><input type="number" id="vme-r-mzt-bue" value="75" style="width:100%;padding:6px 8px;border:1.5px solid #5d6fc7;border-radius:6px;font-size:13px;font-weight:600;text-align:right;background:#fff;font-family:inherit;"></div>
+        </div>
+      </div>
+      <button onclick="renderVME()" style="width:100%;padding:11px;background:var(--verde-mid);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">Recalcular VME</button>
+    </div>
+  </div>
+
+  <!-- BARRAS + CARDS RESULTADO -->
+  <div class="vme-card">
+    <div class="vme-card-hdr"><span>VME — Resultado por alternativa (USD/ha)</span></div>
+    <div id="vme-barras" style="padding:8px 0;"></div>
+  </div>
+  <div class="vme-result-grid" id="vme-result-cards" style="margin-bottom:14px;"></div>
+
+  <!-- EXTRAS: ganadores + peor caso -->
+  <div class="vme-card" id="vme-extras-card" style="margin-bottom:14px;">
+    <div class="vme-card-hdr" style="cursor:pointer;" onclick="toggleVmeExtras()">
+      <span>Análisis complementario</span>
+      <span id="vme-extras-toggle" style="font-size:11px;background:rgba(255,255,255,.2);padding:3px 10px;border-radius:12px;">▶ Ver análisis</span>
+    </div>
+    <div id="vme-extras" style="display:none;"></div>
+  </div>
+
+  <!-- CONCLUSIÓN -->
+  <div class="vme-conclusion" id="vme-conclusion"></div>
+
+  <!-- GRÁFICO -->
+  <div class="chart-wrap">
+    <div class="chart-title">Margen por escenario — comparativa de alternativas</div>
+    <div class="chart-container" style="height:220px;"><canvas id="chart-vme"></canvas></div>
+  </div>
+
+</div>
+
+<!-- PÁGINAS CULTIVOS (generadas por JS) -->
+<div id="cultivos-root"></div>
+
+
+<!-- COMPARATIVAS -->
+<div id="page-comp-sm" class="page">
+  <h2 style="font-size:18px;font-weight:700;margin-bottom:14px;">Soja vs Maíz</h2>
+  <div class="comp-controls">
+    <div class="comp-ctrl-title">Ajustar escenario</div>
+    <div class="comp-ctrl-grid">
+      <div class="ctrl-group">
+        <div class="ctrl-group-title soja">🌱 Soja</div>
+        <div class="ctrl-row"><span class="ctrl-lbl">Precio</span><input class="ctrl-num" type="number" id="cc-p-soja" oninput="renderComp('sm')"> <span style="font-size:10px;color:var(--hint)">USD/tn</span></div>
+        <div class="ctrl-row"><span class="ctrl-lbl">Rinde</span><input class="ctrl-num" type="number" id="cc-r-soja" step="5" oninput="renderComp('sm')"> <span style="font-size:10px;color:var(--hint)">qq/ha</span></div>
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-group-title maiz">🌽 Maíz</div>
+        <div class="ctrl-row"><span class="ctrl-lbl">Precio</span><input class="ctrl-num" type="number" id="cc-p-maiz" oninput="renderComp('sm')"> <span style="font-size:10px;color:var(--hint)">USD/tn</span></div>
+        <div class="ctrl-row"><span class="ctrl-lbl">Rinde</span><input class="ctrl-num" type="number" id="cc-r-maiz" step="5" oninput="renderComp('sm')"> <span style="font-size:10px;color:var(--hint)">qq/ha</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="comp-grid" id="cmp-sm-cards"></div>
+  <div class="comp-conclusion" id="cmp-sm-concl"></div>
+  <!-- Donuts comparativa sm -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+    <div class="chart-wrap" style="margin-bottom:0;">
+      <div class="chart-title" id="donut-title-sm-c1">Composición costos</div>
+      <div class="chart-container" style="height:180px;"><canvas id="chart-donut-sm-c1"></canvas></div>
+    </div>
+    <div class="chart-wrap" style="margin-bottom:0;">
+      <div class="chart-title" id="donut-title-sm-c2">Composición costos</div>
+      <div class="chart-container" style="height:180px;"><canvas id="chart-donut-sm-c2"></canvas></div>
+    </div>
+  </div>
+    <div class="chart-wrap"><div class="chart-title">Comparativa de rubros</div><div class="chart-container"><canvas id="chart-cmp-sm-bar"></canvas></div></div>
+  <div class="chart-wrap"><div class="chart-title">Sensibilidad precio × rinde — Soja</div><div class="chart-container" style="height:200px;"><canvas id="chart-sens-sm"></canvas></div></div>
+  <div class="det-card"><div class="det-hdr"><span>Tabla de sensibilidad (USD/ha)</span><span style="font-size:9px;opacity:.6;">Precio soja (cols) × Rinde soja (filas)</span></div><div style="padding:10px;overflow-x:auto;" id="sens-sm-table"></div></div>
+</div>
+
+<div id="page-comp-gs" class="page">
+  <h2 style="font-size:18px;font-weight:700;margin-bottom:14px;">Girasol vs Soja</h2>
+  <div class="comp-controls">
+    <div class="comp-ctrl-title">Ajustar escenario</div>
+    <div class="comp-ctrl-grid">
+      <div class="ctrl-group">
+        <div class="ctrl-group-title girasol">🌻 Girasol</div>
+        <div class="ctrl-row"><span class="ctrl-lbl">Precio</span><input class="ctrl-num" type="number" id="cc-p-girasol" oninput="renderComp('gs')"> <span style="font-size:10px;color:var(--hint)">USD/tn</span></div>
+        <div class="ctrl-row"><span class="ctrl-lbl">Rinde</span><input class="ctrl-num" type="number" id="cc-r-girasol" step="1" oninput="renderComp('gs')"> <span style="font-size:10px;color:var(--hint)">qq/ha</span></div>
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-group-title soja">🌱 Soja</div>
+        <div class="ctrl-row"><span class="ctrl-lbl">Precio</span><input class="ctrl-num" type="number" id="cc-p-soja-gs" oninput="renderComp('gs')"> <span style="font-size:10px;color:var(--hint)">USD/tn</span></div>
+        <div class="ctrl-row"><span class="ctrl-lbl">Rinde</span><input class="ctrl-num" type="number" id="cc-r-soja-gs" step="5" oninput="renderComp('gs')"> <span style="font-size:10px;color:var(--hint)">qq/ha</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="comp-grid" id="cmp-gs-cards"></div>
+  <div class="comp-conclusion" id="cmp-gs-concl"></div>
+  <!-- Donuts comparativa gs -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+    <div class="chart-wrap" style="margin-bottom:0;">
+      <div class="chart-title" id="donut-title-gs-c1">Composición costos</div>
+      <div class="chart-container" style="height:180px;"><canvas id="chart-donut-gs-c1"></canvas></div>
+    </div>
+    <div class="chart-wrap" style="margin-bottom:0;">
+      <div class="chart-title" id="donut-title-gs-c2">Composición costos</div>
+      <div class="chart-container" style="height:180px;"><canvas id="chart-donut-gs-c2"></canvas></div>
+    </div>
+  </div>
+    <div class="chart-wrap"><div class="chart-title">Comparativa de rubros</div><div class="chart-container"><canvas id="chart-cmp-gs-bar"></canvas></div></div>
+</div>
+
+<div id="page-comp-somt" class="page">
+  <h2 style="font-size:18px;font-weight:700;margin-bottom:14px;">Sorgo vs Maíz</h2>
+  <div class="comp-controls">
+    <div class="comp-ctrl-title">Ajustar escenario</div>
+    <div class="comp-ctrl-grid">
+      <div class="ctrl-group">
+        <div class="ctrl-group-title sorgo">🌾 Sorgo</div>
+        <div class="ctrl-row"><span class="ctrl-lbl">Precio</span><input class="ctrl-num" type="number" id="cc-p-sorgo" oninput="renderComp('somt')"> <span style="font-size:10px;color:var(--hint)">USD/tn</span></div>
+        <div class="ctrl-row"><span class="ctrl-lbl">Rinde</span><input class="ctrl-num" type="number" id="cc-r-sorgo" step="5" oninput="renderComp('somt')"> <span style="font-size:10px;color:var(--hint)">qq/ha</span></div>
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-group-title maiz">🌽 Maíz</div>
+        <div class="ctrl-row"><span class="ctrl-lbl">Precio</span><input class="ctrl-num" type="number" id="cc-p-maiz-somt" oninput="renderComp('somt')"> <span style="font-size:10px;color:var(--hint)">USD/tn</span></div>
+        <div class="ctrl-row"><span class="ctrl-lbl">Rinde</span><input class="ctrl-num" type="number" id="cc-r-maiz-somt" step="5" oninput="renderComp('somt')"> <span style="font-size:10px;color:var(--hint)">qq/ha</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="comp-grid" id="cmp-somt-cards"></div>
+  <div class="comp-conclusion" id="cmp-somt-concl"></div>
+  <!-- Donuts comparativa somt -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+    <div class="chart-wrap" style="margin-bottom:0;">
+      <div class="chart-title" id="donut-title-somt-c1">Composición costos</div>
+      <div class="chart-container" style="height:180px;"><canvas id="chart-donut-somt-c1"></canvas></div>
+    </div>
+    <div class="chart-wrap" style="margin-bottom:0;">
+      <div class="chart-title" id="donut-title-somt-c2">Composición costos</div>
+      <div class="chart-container" style="height:180px;"><canvas id="chart-donut-somt-c2"></canvas></div>
+    </div>
+  </div>
+    <div class="chart-wrap"><div class="chart-title">Comparativa de rubros</div><div class="chart-container"><canvas id="chart-cmp-somt-bar"></canvas></div></div>
+</div>
+
+<!-- ADMIN -->
+<div id="page-admin" class="page">
+  <div class="admin-wrap">
+    <div id="admin-lock-screen">
+      <div class="admin-lock-screen">
+        <div class="lock-icon">🔒</div>
+        <div class="lock-title">Panel Administrador</div>
+        <div class="lock-sub">Acceso exclusivo para editar precios base, insumos y configuración del sistema</div>
+        <input class="lock-pass" type="password" id="admin-pass" placeholder="••••••" inputmode="numeric" onkeydown="if(event.key==='Enter')checkPass()">
+        <button class="lock-btn" onclick="checkPass()">Ingresar</button>
+        <div class="lock-error" id="admin-error">Contraseña incorrecta. Intentá de nuevo.</div>
+      </div>
+    </div>
+    <div id="admin-content" class="admin-content">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+        <div style="font-size:16px;font-weight:700;">⚙ Ajustes del sistema</div>
+        <button onclick="lockAdmin()" style="background:none;border:1px solid var(--border);padding:5px 12px;border-radius:8px;font-size:12px;cursor:pointer;">Cerrar sesión</button>
+      </div>
+
+      <!-- Precios -->
+      <div class="admin-section">
+        <div class="admin-sect-hdr a-global">Precios de mercado (USD/tn)</div>
+        <div class="admin-sect-body">
+          <div class="admin-row"><label>🌱 Soja</label><span class="admin-unit">USD/tn</span><input class="admin-inp" type="number" id="adm-p-soja"></div>
+          <div class="admin-row"><label>🌽 Maíz</label><span class="admin-unit">USD/tn</span><input class="admin-inp" type="number" id="adm-p-maiz"></div>
+          <div class="admin-row"><label>🌻 Girasol</label><span class="admin-unit">USD/tn</span><input class="admin-inp" type="number" id="adm-p-girasol"></div>
+          <div class="admin-row"><label>🌾 Sorgo</label><span class="admin-unit">USD/tn</span><input class="admin-inp" type="number" id="adm-p-sorgo"></div>
+          <div class="admin-row"><label>🌿 Trigo</label><span class="admin-unit">USD/tn</span><input class="admin-inp" type="number" id="adm-p-trigo"></div>
+          <div class="admin-row"><label>Soja (ref. arriendo)</label><span class="admin-unit">USD/tn</span><input class="admin-inp" type="number" id="adm-p-sojaref"></div>
+        </div>
+      </div>
+
+      <!-- Rindes -->
+      <div class="admin-section">
+        <div class="admin-sect-hdr a-global">Rindes base (qq/ha)</div>
+        <div class="admin-sect-body">
+          <div class="admin-row"><label>🌱 Soja</label><span class="admin-unit">qq/ha</span><input class="admin-inp" type="number" id="adm-r-soja"></div>
+          <div class="admin-row"><label>🌽 Maíz</label><span class="admin-unit">qq/ha</span><input class="admin-inp" type="number" id="adm-r-maiz"></div>
+          <div class="admin-row"><label>🌻 Girasol</label><span class="admin-unit">qq/ha</span><input class="admin-inp" type="number" id="adm-r-girasol"></div>
+          <div class="admin-row"><label>🌾 Sorgo</label><span class="admin-unit">qq/ha</span><input class="admin-inp" type="number" id="adm-r-sorgo"></div>
+          <div class="admin-row"><label>🌿 Trigo</label><span class="admin-unit">qq/ha</span><input class="admin-inp" type="number" id="adm-r-trigo"></div>
+        </div>
+      </div>
+
+      <!-- Costos comunes -->
+      <div class="admin-section">
+        <div class="admin-sect-hdr a-global">Costos comunes</div>
+        <div class="admin-sect-body">
+          <div class="admin-row"><label>Flete corto+largo</label><span class="admin-unit">USD/tn</span><input class="admin-inp" type="number" id="adm-flete"></div>
+          <div class="admin-row"><label>Comercialización</label><span class="admin-unit">%</span><input class="admin-inp" type="number" id="adm-com"></div>
+          <div class="admin-row"><label>Cosecha contratista</label><span class="admin-unit">USD/ha</span><input class="admin-inp" type="number" id="adm-cosecha"></div>
+          <div class="admin-row"><label>Siembra directa</label><span class="admin-unit">USD/ha</span><input class="admin-inp" type="number" id="adm-siembra"></div>
+          <div class="admin-row"><label>Costo estructura</label><span class="admin-unit">USD/ha</span><input class="admin-inp" type="number" id="adm-estr"></div>
+          <div class="admin-row" style="background:#f0f7f4;"><label style="font-weight:700;color:var(--verde);">Costo por pulverización por cultivo</label><span class="admin-unit">USD/aplic</span><span></span></div>
+          <div class="admin-row"><label>🌱 Soja</label><span class="admin-unit">USD/aplic</span><input class="admin-inp" type="number" id="adm-pulv-soja"></div>
+          <div class="admin-row"><label>🌽 Maíz</label><span class="admin-unit">USD/aplic</span><input class="admin-inp" type="number" id="adm-pulv-maiz"></div>
+          <div class="admin-row"><label>🌻 Girasol</label><span class="admin-unit">USD/aplic</span><input class="admin-inp" type="number" id="adm-pulv-girasol"></div>
+          <div class="admin-row"><label>🌾 Sorgo</label><span class="admin-unit">USD/aplic</span><input class="admin-inp" type="number" id="adm-pulv-sorgo"></div>
+          <div class="admin-row"><label>🌿 Trigo</label><span class="admin-unit">USD/aplic</span><input class="admin-inp" type="number" id="adm-pulv-trigo"></div>
+        </div>
+      </div>
+
+      <!-- Arrendamiento -->
+      <div class="admin-section">
+        <div class="admin-sect-hdr a-global">Arrendamiento (qq soja/ha)</div>
+        <div class="admin-sect-body">
+          <div class="admin-row"><label>🌱 Soja</label><span class="admin-unit">qq soja</span><input class="admin-inp" type="number" id="adm-arr-soja"></div>
+          <div class="admin-row"><label>🌽 Maíz</label><span class="admin-unit">qq soja</span><input class="admin-inp" type="number" id="adm-arr-maiz"></div>
+          <div class="admin-row"><label>🌻 Girasol</label><span class="admin-unit">qq soja</span><input class="admin-inp" type="number" id="adm-arr-girasol"></div>
+          <div class="admin-row"><label>🌾 Sorgo</label><span class="admin-unit">qq soja</span><input class="admin-inp" type="number" id="adm-arr-sorgo"></div>
+          <div class="admin-row"><label>🌿 Trigo</label><span class="admin-unit">qq soja</span><input class="admin-inp" type="number" id="adm-arr-trigo"></div>
+        </div>
+      </div>
+
+      <!-- Insumos por cultivo en admin -->
+      <div class="admin-section">
+        <div class="admin-sect-hdr a-soja">🌱 Insumos Soja</div>
+        <div class="admin-sect-body"><div id="adm-ins-soja"></div><div style="padding:8px;"><button class="add-ins-btn-admin" onclick="adminAddIns('soja')">+ Agregar producto</button></div></div>
+      </div>
+      <div class="admin-section">
+        <div class="admin-sect-hdr a-maiz">🌽 Insumos Maíz</div>
+        <div class="admin-sect-body"><div id="adm-ins-maiz"></div><div style="padding:8px;"><button class="add-ins-btn-admin" onclick="adminAddIns('maiz')">+ Agregar producto</button></div></div>
+      </div>
+      <div class="admin-section">
+        <div class="admin-sect-hdr a-girasol">🌻 Insumos Girasol</div>
+        <div class="admin-sect-body"><div id="adm-ins-girasol"></div><div style="padding:8px;"><button class="add-ins-btn-admin" onclick="adminAddIns('girasol')">+ Agregar producto</button></div></div>
+      </div>
+      <div class="admin-section">
+        <div class="admin-sect-hdr a-sorgo">🌾 Insumos Sorgo</div>
+        <div class="admin-sect-body"><div id="adm-ins-sorgo"></div><div style="padding:8px;"><button class="add-ins-btn-admin" onclick="adminAddIns('sorgo')">+ Agregar producto</button></div></div>
+      </div>
+      <div class="admin-section">
+        <div class="admin-sect-hdr a-trigo">🌿 Insumos Trigo</div>
+        <div class="admin-sect-body"><div id="adm-ins-trigo"></div><div style="padding:8px;"><button class="add-ins-btn-admin" onclick="adminAddIns('trigo')">+ Agregar producto</button></div></div>
+      </div>
+
+      <button class="admin-save-btn" onclick="saveAdmin()">Guardar y aplicar todos los cambios</button>
+      <button class="admin-reset-btn" onclick="resetAdmin()">Restablecer valores originales</button>
+      <div style="height:16px;"></div>
+    </div>
+  </div>
+</div>
+
+<div class="foot">
+  Leandro Castellano · Administrador de Empresas | Gestión Comercial Agropecuariapecuaria · 351-512-5003 · castellanomleandro@gmail.com<br>
+  Sistema de Márgenes Brutos · Campaña 2026/27 · Valores estimativos · Dpto. Río Primero
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// CONFIGURACIÓN ORIGINAL
+// ═══════════════════════════════════════════════
+const CATS = ['Herbicida pre','Herbicida pos','Insecticida','Fungicida','Fertilizante','Coadyuvante','Semilla','Otro'];
+const CAT_COLORS = {
+  'Herbicida pre':'#2980b9','Herbicida pos':'#3498db',
+  'Insecticida':'#e67e22','Fungicida':'#8e44ad',
+  'Fertilizante':'#c9a84c','Coadyuvante':'#7a7870',
+  'Semilla':'#27ae60','Otro':'#b5b2a8'
+};
+
+const ORIG = {
+  // Parámetros base actualizados según PDFs de referencia 23/04/2026
+  precios:{soja:330,maiz:185,girasol:380,sorgo:190,trigo:220,sojaRef:319},
+  rindes:{soja:30,maiz:80,girasol:22,sorgo:55,trigo:34},
+  costos:{flete:30,com:2.5,cosecha:80,siembra:45,estr:15,pulvCosto:12},
+  pulvCostoCultivo:{soja:12,maiz:12,girasol:12,sorgo:12,trigo:12},
+  // Overrides por cultivo para respetar la foto de costos de cada margen
+  costosCultivo:{
+    soja:{flete:30,cosecha:80,siembra:45,estr:15},
+    maiz:{flete:30,cosecha:80,siembra:45,estr:15},
+    girasol:{flete:30,cosecha:80,siembra:45,estr:15},
+    sorgo:{flete:30,cosecha:80,siembra:45,estr:15},
+    trigo:{flete:32,cosecha:85,siembra:45,estr:15},
+  },
+  arr:{soja:10,maiz:10,girasol:10,sorgo:10,trigo:4},
+  insumos:{
+    soja:[
+      {n:'Semilla',cat:'Semilla',qty:1,price:28},
+      {n:'Inoculante',cat:'Otro',qty:1,price:5},
+      {n:'Herbicida preemergente',cat:'Herbicida pre',qty:1,price:78},
+      {n:'Herbicida postemergente',cat:'Herbicida pos',qty:1,price:65},
+      {n:'Fungicida',cat:'Fungicida',qty:1,price:10},
+      {n:'Fosfato monoamónico (MAP)',cat:'Fertilizante',qty:1,price:45},
+      {n:'Insecticida',cat:'Insecticida',qty:1,price:18},
+    ],
+    maiz:[
+      {n:'Semilla híbrido',cat:'Semilla',qty:1,price:160},
+      {n:'Herbicida preemergente',cat:'Herbicida pre',qty:1,price:90},
+      {n:'Herbicida postemergente',cat:'Herbicida pos',qty:1,price:55},
+      {n:'Insecticida',cat:'Insecticida',qty:1,price:0},
+      {n:'Urea (siembra)',cat:'Fertilizante',qty:1,price:50},
+      {n:'Urea (cobertura)',cat:'Fertilizante',qty:1,price:160},
+      {n:'Fungicida',cat:'Fungicida',qty:1,price:0},
+    ],
+    girasol:[
+      {n:'Semilla confitero',cat:'Semilla',qty:1,price:55},
+      {n:'Herbicida preemergente',cat:'Herbicida pre',qty:1,price:18},
+      {n:'Herbicida postemergente',cat:'Herbicida pos',qty:1,price:12},
+      {n:'Insecticida',cat:'Insecticida',qty:1,price:10},
+      {n:'MAP (siembra)',cat:'Fertilizante',qty:1,price:60},
+    ],
+    sorgo:[
+      {n:'Semilla híbrido',cat:'Semilla',qty:1,price:80},
+      {n:'Herbicida preemergente',cat:'Herbicida pre',qty:1,price:30},
+      {n:'Herbicida postemergente',cat:'Herbicida pos',qty:1,price:22},
+      {n:'Insecticida',cat:'Insecticida',qty:1,price:20},
+      {n:'MAP (siembra)',cat:'Fertilizante',qty:1,price:90},
+    ],
+    trigo:[
+      {n:'Semilla',cat:'Semilla',qty:1,price:28},
+      {n:'Fertilizante arranque (MAP)',cat:'Fertilizante',qty:1,price:50},
+      {n:'Urea cobertura',cat:'Fertilizante',qty:1,price:120},
+      {n:'Herbicida preemergente',cat:'Herbicida pre',qty:1,price:34},
+      {n:'Herbicida postemergente',cat:'Herbicida pos',qty:1,price:0},
+      {n:'Fungicida',cat:'Fungicida',qty:1,price:22},
+      {n:'Insecticida',cat:'Insecticida',qty:1,price:12},
+    ],
+  },
+  pulvQty:{soja:3,maiz:3,girasol:2,sorgo:2,trigo:3},
+};
+
+const STORAGE_KEY='lc_marg_v11_costos_pulv_por_cultivo_20260423';
+let CFG = JSON.parse(JSON.stringify(ORIG));
+function loadCFG(){try{const s=localStorage.getItem(STORAGE_KEY);if(s)CFG=JSON.parse(s);}catch(e){}}
+function saveCFG(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(CFG));}catch(e){}}
+
+// ═══════════════════════════════════════════════
+// STATE POR CULTIVO
+// ═══════════════════════════════════════════════
+const CIDS=['soja','maiz','girasol','sorgo','trigo'];
+const CNAMES={soja:'Soja',maiz:'Maíz',girasol:'Girasol',sorgo:'Sorgo',trigo:'Trigo'};
+const CCOLORS={soja:'#c9a84c',maiz:'#e67e22',girasol:'#f39c12',sorgo:'#8e44ad',trigo:'#27ae60'};
+let CS={};
+
+function initCS(){
+  CIDS.forEach(c=>{
+    const cc=(CFG.costosCultivo&&CFG.costosCultivo[c])?CFG.costosCultivo[c]:{};
+    CS[c]={
+      precio:CFG.precios[c], rinde:CFG.rindes[c],
+      flete:cc.flete ?? CFG.costos.flete, com:CFG.costos.com,
+      cosecha:cc.cosecha ?? CFG.costos.cosecha,
+      siembra:cc.siembra ?? CFG.costos.siembra,
+      estr:cc.estr ?? CFG.costos.estr, riego:0, seg:0,
+      arrQQ:CFG.arr[c], arrPct:20, arrMode:'qq', ret:false, ib:false,
+    };
+  });
+}
+
+// ═══════════════════════════════════════════════
+// MOTOR DE CÁLCULO ÚNICO
+// ═══════════════════════════════════════════════
+function getPulvCosto(c){
+  if (CFG.pulvCostoCultivo && CFG.pulvCostoCultivo[c] !== undefined) return Number(CFG.pulvCostoCultivo[c]) || 0;
+  return Number(CFG.costos.pulvCosto) || 0;
+}
+
+function calcCultivo(c,s){
+  const pQQ    = s.precio/10;
+  const sojaQQ = CFG.precios.sojaRef/10;
+  const fleteQQ= s.flete/10;
+  const pctCom = s.com/100;
+  // cosecha es USD/ha fijo
+  const pctRet = s.ret?0.095:0;
+  const pctIB  = s.ib?0.030:0;
+
+  const venta    = s.rinde*pQQ;
+  const fleteH   = s.rinde*fleteQQ;
+  const comH     = venta*pctCom;
+  const retH     = venta*pctRet;
+  const ibH      = venta*pctIB;
+  const cosechaH = s.cosecha; // USD/ha fijo
+  const ingrN    = venta-fleteH-comH-retH-ibH;
+
+  // Insumos agrupados por categoría
+  const insList = CFG.insumos[c]||[];
+  const insTot  = insList.reduce((a,i)=>a+(parseFloat(i.price)||0)*(parseFloat(i.qty)||1),0);
+  const pulvH   = (CFG.pulvQty[c]||2)*getPulvCosto(c);
+  const cf_sinCos = insTot+pulvH+s.siembra+s.estr+s.riego+s.seg;
+  const cf      = cf_sinCos+cosechaH;
+  // Arrendamiento: qq fijos o % del ingreso
+  var arrH;
+  if(s.arrMode==='pct'){
+    arrH = venta * (s.arrPct||0) / 100;
+  } else {
+    arrH = s.arrQQ * sojaQQ;
+  }
+  const mb      = ingrN-cf-arrH;
+
+  // PE
+  const nPQ = pQQ*(1-pctCom-pctRet-pctIB)-fleteQQ;
+  const pe  = nPQ>0?(cf_sinCos+s.cosecha+arrH)/nPQ:9999;
+
+  // Categorías de insumos
+  const catTotals={};
+  CATS.forEach(cat=>{catTotals[cat]=0;});
+  insList.forEach(i=>{catTotals[i.cat]=(catTotals[i.cat]||0)+(parseFloat(i.price)||0)*(parseFloat(i.qty)||1);});
+
+  return{venta,fleteH,comH,retH,ibH,cosechaH,ingrN,insTot,pulvH,cf_sinCos,cf,arrH,mb,pe,
+         pQQ,sojaQQ,fleteQQ,pctCom,pctRet,pctIB,catTotals,insList};
+}
+
+// ═══════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════
+const usd  = n=>'USD '+Math.round(n).toLocaleString('es-AR');
+const fmtQ = q=>q.toFixed(1)+' qq/ha';
+const cls  = mb=>mb>30?'pos':mb<0?'neg':'warn';
+const el   = id=>document.getElementById(id);
+const set  = (id,txt)=>{const e=el(id);if(e)e.textContent=txt;};
+function pctClass(p){return p>=20?'pct-high':p>=10?'pct-mid':'pct-low';}
+function semCls(mb,diff){return mb<0?'sem-danger':diff<5?'sem-warn':'sem-ok';}
+function semTxt(mb,diff){return mb<0?'Riesgo ALTO':diff<5?'Riesgo MEDIO':'Riesgo BAJO';}
+function updTrack(inp){
+  if(!inp)return;
+  const p=Math.round((inp.value-inp.min)/(inp.max-inp.min)*100);
+  inp.style.background='linear-gradient(to right,var(--verde-mid) '+p+'%,#e8e5de '+p+'%)';
+}
+
+// ═══════════════════════════════════════════════
+// NAVEGACIÓN
+// ═══════════════════════════════════════════════
+const NAV_MAP=['dash','soja','maiz','girasol','sorgo','trigo','comp-sm','comp-gs','comp-somt','vme','informe','admin'];
+function navTo(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  const p=el('page-'+id);
+  if(p)p.classList.add('active');
+  const idx=NAV_MAP.indexOf(id);
+  const tabs=document.querySelectorAll('.nav-tab');
+  if(idx>=0&&tabs[idx])tabs[idx].classList.add('active');
+  window.scrollTo(0,0);
+  if(id==='dash')renderDash();
+  else if(CIDS.includes(id))renderCultivo(id);
+  else if(id==='comp-sm'){initCompControls('sm');renderComp('sm');}
+  else if(id==='comp-gs'){initCompControls('gs');renderComp('gs');}
+  else if(id==='comp-somt'){initCompControls('somt');renderComp('somt');}
+  else if(id==='admin')renderAdminPage();
+  else if(id==='vme')renderVME();
+  else if(id==='informe')renderInforme();
+}
+
+// ═══════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════
+
+// ── PRECIOS DASHBOARD ──────────────────────────
+function renderPreciosDisplay(){
+  const disp=el('precios-display');
+  if(!disp)return;
+  const cultivos=[
+    {c:'soja',  label:'🌱 Soja',    cls:'soja'},
+    {c:'maiz',  label:'🌽 Maíz',    cls:'maiz'},
+    {c:'girasol',label:'🌻 Girasol', cls:'girasol'},
+    {c:'sorgo', label:'🌾 Sorgo',   cls:'sorgo'},
+  ];
+  disp.innerHTML=cultivos.map(({c,label,cls:cc})=>`
+    <div class="precio-item">
+      <div class="precio-cult ${cc}">${label}</div>
+      <div class="precio-val">USD ${CFG.precios[c]}</div>
+      <div class="precio-sub">por tonelada</div>
+    </div>`).join('');
+}
+
+let preciosEditOpen=false;
+function togglePreciosEdit(){
+  const panel=el('precios-edit-panel');
+  if(!panel)return;
+  preciosEditOpen=!preciosEditOpen;
+  panel.classList.toggle('open',preciosEditOpen);
+  if(preciosEditOpen){
+    el('pe-soja').value=CFG.precios.soja;
+    el('pe-maiz').value=CFG.precios.maiz;
+    el('pe-girasol').value=CFG.precios.girasol;
+    el('pe-sorgo').value=CFG.precios.sorgo;
+    el('pe-pass').value='';
+    el('pe-error').style.display='none';
+  }
+}
+
+function savePreciosDash(){
+  if(el('pe-pass').value!==ADMIN_PASS){
+    el('pe-error').style.display='inline';
+    el('pe-pass').value='';return;
+  }
+  const gN=id=>{const e=el(id);return e?parseFloat(e.value)||0:0;};
+  CFG.precios.soja   =gN('pe-soja');
+  CFG.precios.maiz   =gN('pe-maiz');
+  CFG.precios.girasol=gN('pe-girasol');
+  CFG.precios.sorgo  =gN('pe-sorgo');
+  CFG.fechaActualizacion = new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'});
+  saveCFG();
+  initCS();
+  togglePreciosEdit();
+  renderDash();
+}
+
+let chartDash=null;
+function renderDash(){
+  // Portada fecha
+  const f=new Date();
+  set('portada-fecha',f.toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'}));
+
+  // Badges portada
+
+
+  // Cards
+  const grid=el('dash-grid');
+  if(grid){
+    grid.innerHTML=CIDS.map(c=>{
+      const r=calcCultivo(c,CS[c]);
+      const diff=CS[c].rinde-r.pe;
+      return`<div class="dash-card ${c}" onclick="navTo('${c}')">
+        <div class="dash-badge ${c}">${CNAMES[c]}</div>
+        <div class="dash-mb ${cls(r.mb)}">${usd(r.mb)}</div>
+        <div class="dash-rinde">${CS[c].rinde} qq/ha · PE: ${r.pe<9000?r.pe.toFixed(1):'N/D'} qq</div>
+        <div style="font-size:11px;margin-top:4px;color:var(--muted);">${diff>=0?'<span style="color:var(--verde-mid);font-weight:600;">+'+diff.toFixed(1)+' qq sobre PE</span>':'<span style="color:var(--rojo);font-weight:600;">'+diff.toFixed(1)+' qq bajo PE</span>'}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // Gráfico
+  const data=CIDS.map(c=>Math.round(calcCultivo(c,CS[c]).mb));
+  renderPreciosDisplay();
+
+  // ── Fecha de actualización ──
+  var fechaEl=el('dash-fecha-act');
+  if(fechaEl){
+    var fa=CFG.fechaActualizacion||'Sin fecha de actualización';
+    fechaEl.textContent='Precios actualizados: '+fa;
+  }
+
+  // ── Resumen ejecutivo ──
+  var resTexto=el('dash-resumen-texto');
+  if(resTexto){
+    var lineas=CIDS.map(function(c){
+      var r=calcCultivo(c,CS[c]);
+      var diff=CS[c].rinde-r.pe;
+      var signo=diff>=0?'✓':'⚠';
+      return signo+' <strong>'+CNAMES[c]+'</strong>: MB '+usd(r.mb)+'/ha · '+CS[c].rinde+' qq/ha · PE '+r.pe.toFixed(1)+' qq';
+    });
+    // VME
+    var vd=calcVME();
+    var vmeAlts=[
+      {lbl:'Soja 1°',vme:vd.vmeS1},
+      {lbl:'Trigo/Soja 2°',vme:vd.vmeTS2},
+      {lbl:'Maíz',vme:vd.vmeMz},
+      {lbl:'Trigo/Maíz tard.',vme:vd.vmeTMzT},
+    ];
+    var mejorVME=vmeAlts.slice().sort(function(a,b){return b.vme-a.vme;})[0];
+    lineas.push('');
+    lineas.push('📊 <strong>Mejor estrategia VME</strong>: '+mejorVME.lbl+' · USD '+Math.round(mejorVME.vme)+'/ha esperado');
+    resTexto.textContent=lineas.map(function(l){return l.replace(/<[^>]+>/g,'');}).join('\n');
+
+    // ── Botón WhatsApp ──
+    var wapBtn=el('dash-wap-btn');
+    if(wapBtn){
+      var wapLineas=['Margenes Brutos - Campana 2026/27','Leandro Castellano - Administrador de Empresas | Gestión Comercial Agropecuariapecuaria',''];
+      CIDS.forEach(function(c){var r=calcCultivo(c,CS[c]);wapLineas.push(CNAMES[c]+': USD '+Math.round(r.mb)+'/ha - '+CS[c].rinde+' qq/ha');});
+      wapLineas.push('');
+      wapLineas.push('VME recomendado: '+mejorVME.lbl+' - USD '+Math.round(mejorVME.vme)+'/ha esperado');
+      wapLineas.push('Consultas: 351-512-5003');
+      var txt=wapLineas.join('\n');
+      wapBtn.href='https://wa.me/?text='+encodeURIComponent(txt);
+    }
+  }
+
+  if(chartDash)chartDash.destroy();
+  chartDash=new Chart(el('chart-dash'),{
+    type:'bar',
+    data:{labels:CIDS.map(c=>CNAMES[c]),datasets:[{data,backgroundColor:CIDS.map(c=>CCOLORS[c]),borderRadius:6}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{y:{ticks:{callback:v=>'USD'+v}}}}
+  });
+}
+
+// ═══════════════════════════════════════════════
+// CULTIVO INDIVIDUAL
+// ═══════════════════════════════════════════════
+function onSlide(inp,c){updTrack(inp);readSliders(c);renderCultivoResults(c);}
+function readSliders(c){
+  const g=(k,def)=>{const e=el('sl-'+k+'-'+c);return e?parseFloat(e.value)||0:def;};
+  CS[c].precio  =g('precio',CS[c].precio);
+  CS[c].rinde   =g('rinde',CS[c].rinde);
+  CS[c].flete   =g('flete',CS[c].flete);
+  CS[c].com     =g('com',CS[c].com);
+  CS[c].cosecha =g('cosecha',CS[c].cosecha);
+  CS[c].siembra =g('siembra',CS[c].siembra);
+  CS[c].estr    =g('estr',CS[c].estr);
+  CS[c].riego   =g('riego',0);
+  CS[c].seg     =g('seg',0);
+  CS[c].arrQQ   = g('arr', CS[c].arrQQ);
+  if(arrMode[c]==='pct'){
+    CS[c].arrPct=g('arr',CS[c].arrPct);
+  } else {
+    CS[c].arrQQ=g('arr',CS[c].arrQQ);
+  }
+  CS[c].arrMode=arrMode[c]||'qq';
+  const ret=el('chk-ret-'+c),ib=el('chk-ib-'+c);
+  CS[c].ret=ret?ret.checked:false;
+  CS[c].ib=ib?ib.checked:false;
+}
+
+const RRANGES={
+  soja:{min:5,max:45,step:1,esc:[15,20,25,30,35],escN:['Muy seco','Seco','Normal','Bueno','Excelente']},
+  maiz:{min:30,max:130,step:2,esc:[50,60,70,80,90],escN:['Muy seco','Seco','Normal','Bueno','Excelente']},
+  girasol:{min:8,max:35,step:1,esc:[14,17,20,23,26],escN:['Muy seco','Seco','Normal','Bueno','Excelente']},
+  sorgo:{min:20,max:90,step:2,esc:[35,43,50,57,65],escN:['Muy seco','Seco','Normal','Bueno','Excelente']},
+  trigo:{min:10,max:55,step:1,esc:[15,20,25,30,35],escN:['Muy seco','Seco','Normal','Bueno','Excelente']},
+};
+const PRANGES={soja:[150,500,5],maiz:[80,300,5],girasol:[150,700,10],sorgo:[80,250,5],trigo:[130,320,5]};
+
+function buildCultPage(c){
+  const s=CS[c];
+  const rr=RRANGES[c];
+  const pr=PRANGES[c];
+  const p=(v,mn,mx)=>Math.round((v-mn)/(mx-mn)*100);
+  const slRow=(key,label,val,mn,mx,step,unit,hint='')=>
+    `<div class="srow">
+      <div class="srow-top">
+        <span class="srow-name">${label} <span style="font-size:10px;color:var(--hint)">(${unit})</span></span>
+        <span class="srow-val" id="lbl-${key}-${c}">—</span>
+      </div>
+      <input type="range" id="sl-${key}-${c}" min="${mn}" max="${mx}" step="${step}" value="${val}"
+        style="background:linear-gradient(to right,var(--verde-mid) ${p(val,mn,mx)}%,#e8e5de ${p(val,mn,mx)}%);"
+        oninput="onSlide(this,'${c}')" onchange="onSlide(this,'${c}')">
+      ${hint?`<div class="srow-hint">${hint}</div>`:''}
+    </div>`;
+
+  const escH=rr.esc.map((rq,i)=>
+    `<div class="esc-card ${rq===s.rinde?'active':''}" id="esc${i}-${c}" onclick="setEsc('${c}',${rq},${i})">
+      <div class="esc-name">${rr.escN[i]}</div>
+      <div class="esc-qq">${rq}</div>
+      <div class="esc-mg" id="em${i}-${c}">—</div>
+    </div>`).join('');
+
+  return`<div id="page-${c}" class="page">
+    <div class="cult-hdr ${c}">
+      <div><div class="cult-hdr-name">${CNAMES[c].toUpperCase()} — MARGEN BRUTO</div><div class="cult-hdr-sub">Campaña 2026/27</div></div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button onclick="imprimirCultivo('${c}')" style="background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
+          Imprimir
+        </button>
+        <span style="background:rgba(255,255,255,.2);color:#fff;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;">${CNAMES[c]}</span>
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="sldr-panel">
+        <span class="slbl" style="border-top:none;">Producción</span>
+        ${slRow('precio','Precio '+CNAMES[c],s.precio,pr[0],pr[1],pr[2],'USD/tn','Futuro campaña 2026/27')}
+        ${slRow('rinde','Rendimiento esperado',s.rinde,rr.min,rr.max,rr.step,'qq/ha','Referencia zona Río Primero')}
+        <span class="slbl" style="display:flex;justify-content:space-between;align-items:center;padding-right:14px;">
+          ARRENDAMIENTO
+          <span style="display:flex;gap:4px;">
+            <button id="arr-btn-qq-${c}" onclick="setArrMode('${c}','qq')"
+              style="background:var(--verde-mid);color:#fff;border:2px solid var(--verde-mid);border-radius:6px;padding:2px 9px;font-size:10px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;">qq fijos</button>
+            <button id="arr-btn-pct-${c}" onclick="setArrMode('${c}','pct')"
+              style="background:transparent;color:var(--muted);border:2px solid var(--border);border-radius:6px;padding:2px 9px;font-size:10px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;">% ingreso</button>
+          </span>
+        </span>
+        ${slRow('arr','Arriendo',s.arrQQ,0,25,0.5,'qq soja/ha','qq de soja por ha — precio soja referencia')}
+        <span class="slbl">Cosecha y comercialización</span>
+        ${slRow('cosecha','Cosecha contratista',s.cosecha,0,150,5,'USD/ha','Valor fijo contratista — ref. zona: USD 70–90/ha')}
+        ${slRow('flete','Flete corto + largo',s.flete,10,100,1,'USD/tn','')}
+        ${slRow('com','Comercialización',s.com,1,5,0.5,'%','')}
+        <span class="slbl">Labores y extras</span>
+        ${slRow('siembra','Siembra directa',s.siembra,15,80,1,'USD/ha','')}
+        ${slRow('estr','Costo estructura',s.estr,0,60,1,'USD/ha','')}
+        ${slRow('riego','Riego',s.riego,0,200,5,'USD/ha','Costo agua + energía')}
+        ${slRow('seg','Seguro',s.seg,0,100,1,'USD/ha','Granizo / multirriesgo')}
+        <span class="slbl">Impositivo</span>
+        <div class="trow"><span>Retención 9.5%</span><label class="switch"><input type="checkbox" id="chk-ret-${c}" onchange="readSliders('${c}');renderCultivoResults('${c}')"><span class="sw"></span></label></div>
+        <div class="trow"><span>Ing. brutos 3%</span><label class="switch"><input type="checkbox" id="chk-ib-${c}" onchange="readSliders('${c}');renderCultivoResults('${c}')"><span class="sw"></span></label></div>
+        <div style="height:10px;background:var(--card);"></div>
+      </div>
+      <div>
+        <div class="kgrid">
+          <div class="kpi"><div class="kpi-lbl">Ingreso bruto</div><div class="kpi-val" id="k-ing-${c}">—</div></div>
+          <div class="kpi"><div class="kpi-lbl">Costos totales</div><div class="kpi-val" id="k-costo-${c}">—</div></div>
+          <div class="kpi"><div class="kpi-lbl">Arrendamiento</div><div class="kpi-val" id="k-arr-${c}">—</div></div>
+          <div class="kpi"><div class="kpi-lbl">Margen bruto</div><div class="kpi-val" id="k-mb-${c}">—</div></div>
+        </div>
+        <div class="total-box pos" id="total-${c}"><span class="total-lbl">MARGEN BRUTO / HA</span><span class="total-val" id="tval-${c}">—</span></div>
+        <div class="pe-box">
+          <div class="pe-title">Punto de Equilibrio</div>
+          <div class="pe-row"><span class="pe-lbl">Tu rinde</span><div class="pe-bg"><div class="pe-fill" id="pe-r-${c}"></div></div><span class="pe-v" id="pe-vr-${c}">—</span></div>
+          <div class="pe-row"><span class="pe-lbl">Necesitás</span><div class="pe-bg"><div class="pe-fill" id="pe-pe-${c}"></div></div><span class="pe-v" id="pe-vpe-${c}">—</span></div>
+          <div class="pe-diff" id="pe-diff-${c}"></div>
+        </div>
+        <div class="alerta ok" id="alerta-${c}">—</div>
+        <div class="chart-wrap"><div class="chart-title">Composición de costos</div><div class="chart-container"><canvas id="chart-${c}"></canvas></div></div>
+
+        <!-- DETALLE MARGEN CON % -->
+        <div class="det-card">
+          <div class="det-hdr"><span>Detalle del margen</span><span style="font-size:9px;opacity:.6;font-weight:400;">USD/ha · Nota · %</span></div>
+          <div class="drow"><span class="drow-lbl" style="color:#2d6a4f;font-weight:600;">Venta ${CNAMES[c]}</span><span class="drow-note" id="dn-v-${c}"></span><span class="drow-val" style="color:#2d6a4f;" id="d-v-${c}">—</span><span class="drow-pct" id="dp-v-${c}"></span></div>
+          <div class="drow"><span class="drow-lbl" style="color:#c0392b;">Flete</span><span class="drow-note" id="dn-fl-${c}"></span><span class="drow-val" style="color:#c0392b;" id="d-fl-${c}">—</span><span class="drow-pct" id="dp-fl-${c}"></span></div>
+          <div class="drow"><span class="drow-lbl" style="color:#c0392b;">Comercialización</span><span class="drow-note" id="dn-cm-${c}"></span><span class="drow-val" style="color:#c0392b;" id="d-cm-${c}">—</span><span class="drow-pct" id="dp-cm-${c}"></span></div>
+          <div id="row-ret-${c}" class="drow" style="display:none;"><span class="drow-lbl" style="color:#c0392b;">Retención 9.5%</span><span class="drow-note"></span><span class="drow-val" style="color:#c0392b;" id="d-ret-${c}">—</span><span class="drow-pct" id="dp-ret-${c}"></span></div>
+          <div id="row-ib-${c}" class="drow" style="display:none;"><span class="drow-lbl" style="color:#c0392b;">Ing. brutos 3%</span><span class="drow-note"></span><span class="drow-val" style="color:#c0392b;" id="d-ib-${c}">—</span><span class="drow-pct" id="dp-ib-${c}"></span></div>
+          <div class="dsub"><span>Ingreso neto</span><span id="d-ingn-${c}">—</span><span></span><span></span></div>
+          <div class="drow"><span class="drow-lbl" style="color:#c9a84c;font-weight:600;">Insumos</span><span class="drow-note">según admin</span><span class="drow-val" style="color:#c9a84c;" id="d-ins-${c}">—</span><span class="drow-pct" id="dp-ins-${c}"></span></div>
+          <div class="drow"><span class="drow-lbl" style="color:#7a7870;">Pulverizaciones</span><span class="drow-note"></span><span class="drow-val" style="color:#7a7870;" id="d-pulv-${c}">—</span><span class="drow-pct" id="dp-pulv-${c}"></span></div>
+          <div class="drow"><span class="drow-lbl" style="color:#7a7870;">Siembra</span><span class="drow-note"></span><span class="drow-val" style="color:#7a7870;" id="d-siem-${c}">—</span><span class="drow-pct" id="dp-siem-${c}"></span></div>
+          <div class="drow"><span class="drow-lbl" style="color:#7a7870;">Cosecha</span><span class="drow-note" id="dn-cos-${c}"></span><span class="drow-val" style="color:#7a7870;" id="d-cos-${c}">—</span><span class="drow-pct" id="dp-cos-${c}"></span></div>
+          <div class="drow"><span class="drow-lbl" style="color:#2980b9;font-weight:600;">Riego</span><span class="drow-note"></span><span class="drow-val" style="color:#2980b9;" id="d-riego-${c}">—</span><span class="drow-pct" id="dp-riego-${c}"></span></div>
+          <div class="drow"><span class="drow-lbl" style="color:#b5b2a8;">Estructura</span><span class="drow-note"></span><span class="drow-val" style="color:#b5b2a8;" id="d-estr-${c}">—</span><span class="drow-pct" id="dp-estr-${c}"></span></div>
+          <div class="drow"><span class="drow-lbl" style="color:#b5b2a8;">Seguro</span><span class="drow-note"></span><span class="drow-val" style="color:#b5b2a8;" id="d-seg-${c}">—</span><span class="drow-pct" id="dp-seg-${c}"></span></div>
+          <div class="dsub"><span>Subtotal costos directos</span><span id="d-cf-${c}">—</span><span></span><span></span></div>
+          <div class="drow" style="background:#f0faf5;"><span class="drow-lbl" style="color:#1a4731;font-weight:700;">Arrendamiento</span><span class="drow-note" id="dn-arr-${c}"></span><span class="drow-val" style="color:#1a4731;font-weight:700;" id="d-arr-${c}">—</span><span class="drow-pct" id="dp-arr-${c}"></span></div>
+        </div>
+
+        <!-- EDICION RAPIDA DE COSTOS -->
+        <div style="background:var(--card);border-radius:12px;border:1px solid var(--border);overflow:hidden;margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;cursor:pointer;background:#f5f4f0;" onclick="toggleCostEdit('${c}')">
+            <span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;">⚙ Editar costos de insumos</span>
+            <span id="costedit-toggle-${c}" style="font-size:11px;color:var(--muted);background:var(--border);padding:2px 10px;border-radius:10px;">▶ Ver</span>
+          </div>
+          <div id="costedit-body-${c}" style="display:none;">
+            <div style="padding:6px 14px 2px;font-size:10px;color:var(--hint);">Modificá el precio de cada insumo. Se actualiza el margen en tiempo real.</div>
+            <div id="costedit-insumos-${c}"></div>
+            <div style="padding:8px 14px;" id="add-ins-btn-${c}">
+              <button onclick="addInsumoWithPass('${c}')" style="width:100%;padding:7px;background:transparent;color:var(--verde-mid);border:1.5px dashed var(--verde-lt);border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">+ Agregar insumo</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- INSUMOS DETALLE POR CULTIVO -->
+        <div class="ins-section" id="ins-detail-\${c}">
+          <div class="ins-hdr \${c}" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;" onclick="toggleInsSection('\${c}')">
+            <div>
+              <div style="font-size:10px;opacity:.8;letter-spacing:.06em;text-transform:uppercase;">Insumos — \${CNAMES[c]}</div>
+              <div id="ins-total-hdr-\${c}" style="font-size:13px;font-weight:700;margin-top:1px;"></div>
+            </div>
+            <span id="ins-toggle-\${c}" style="font-size:11px;background:rgba(255,255,255,.2);padding:3px 10px;border-radius:12px;white-space:nowrap;">▶ Ver detalle</span>
+          </div>
+          <div id="ins-rows-\${c}" class="ins-detail-body"></div>
+        </div>
+
+        <!-- ESCENARIOS -->
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">Escenarios — ${CNAMES[c]}</div>
+        <div class="esc-grid">${escH}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+let cultCharts={};
+function renderCultivoResults(c){
+  const s=CS[c];
+  const r=calcCultivo(c,s);
+  const diff=s.rinde-r.pe;
+  const ok=s.rinde>=r.pe&&r.pe<9000;
+  const totCost=r.cf+r.arrH;
+
+  // Labels sliders
+  set('lbl-precio-'+c,'USD '+s.precio+'/tn');
+  set('lbl-rinde-'+c,s.rinde+' qq/ha');
+  set('lbl-flete-'+c,'USD '+s.flete+'/tn');
+  set('lbl-com-'+c,s.com+'%');
+  set('lbl-cosecha-'+c,'USD '+s.cosecha+'/ha');
+  set('lbl-siembra-'+c,'USD '+s.siembra);
+  set('lbl-estr-'+c,'USD '+s.estr);
+  set('lbl-riego-'+c,'USD '+s.riego);
+  set('lbl-seg-'+c,'USD '+s.seg);
+  set('lbl-arr-'+c, s.arrMode==='pct' ? (s.arrPct||0)+'% ingreso' : s.arrQQ+' qq soja');
+
+  // KPIs
+  set('k-ing-'+c,usd(r.venta));
+  set('k-costo-'+c,'− '+usd(r.cf));
+  set('k-arr-'+c,'− '+usd(r.arrH));
+  const kmb=el('k-mb-'+c);if(kmb){kmb.textContent=usd(r.mb);kmb.className='kpi-val '+cls(r.mb);}
+  const totEl=el('total-'+c);if(totEl)totEl.className='total-box '+cls(r.mb);
+  set('tval-'+c,usd(r.mb));
+
+  // PE
+  const MAX={soja:45,maiz:130,girasol:35,sorgo:90,trigo:55}[c]||100;
+  const rp=Math.min(100,s.rinde/MAX*100),pep=Math.min(100,r.pe/MAX*100);
+  const peR=el('pe-r-'+c),pePE=el('pe-pe-'+c);
+  if(peR){peR.style.width=rp+'%';peR.style.background=ok?'var(--verde-mid)':'var(--amarillo)';}
+  if(pePE){pePE.style.width=pep+'%';pePE.style.background=ok?'var(--hint)':'var(--rojo)';}
+  set('pe-vr-'+c,fmtQ(s.rinde));
+  set('pe-vpe-'+c,r.pe<9000?fmtQ(r.pe):'N/D');
+  const peDiff=el('pe-diff-'+c);
+  if(peDiff)peDiff.innerHTML=ok
+    ?`<span style="color:var(--muted)">Diferencia sobre P.E.</span><span style="font-weight:700;color:var(--verde-mid)">+${fmtQ(diff)}</span>`
+    :`<span style="color:var(--muted)">Te faltan</span><span style="font-weight:700;color:var(--rojo)">${fmtQ(Math.abs(diff))}</span>`;
+
+  // Alerta
+  const al=el('alerta-'+c);
+  if(al){
+    if(r.mb<0){al.className='alerta danger';al.textContent='⚠ El negocio no cierra. Te faltan '+fmtQ(Math.abs(diff))+' para cubrir costos.';}
+    else if(diff<5){al.className='alerta warn';al.textContent='⚡ Margen ajustado — '+fmtQ(diff)+' de diferencia sobre el P.E.';}
+    else{al.className='alerta ok';al.textContent='✓ Rinde esperado supera el P.E. en '+fmtQ(diff)+'.';}
+  }
+
+  // Función helper para fila con %
+  function setRow(key,val,note,refTotal){
+    set('d-'+key+'-'+c,'− '+usd(val));
+    if(note!==undefined)set('dn-'+key+'-'+c,note||'');
+    const pctEl=el('dp-'+key+'-'+c);
+    if(pctEl&&refTotal>0){
+      const p=Math.round(val/refTotal*100);
+      pctEl.textContent=p+'%';
+      pctEl.className='drow-pct '+pctClass(p);
+    }
+  }
+
+  set('d-v-'+c,'+ '+usd(r.venta));set('dn-v-'+c,s.rinde+' qq × USD '+r.pQQ.toFixed(2)+'/qq');
+  const dpv=el('dp-v-'+c);if(dpv){dpv.textContent='';dpv.className='drow-pct';}
+
+  setRow('fl',r.fleteH,s.rinde+' qq × USD '+r.fleteQQ.toFixed(2),totCost);
+  setRow('cm',r.comH,s.com+'% s/venta',totCost);
+  setRow('ret',r.retH,'',totCost);setRow('ib',r.ibH,'',totCost);
+  el('row-ret-'+c).style.display=s.ret?'':'none';
+  el('row-ib-'+c).style.display=s.ib?'':'none';
+  set('d-ingn-'+c,usd(r.ingrN));
+  setRow('ins',r.insTot,'ver detalle abajo',totCost);
+  setRow('pulv',r.pulvH,'',totCost);
+  setRow('siem',s.siembra,'',totCost);
+  setRow('cos',r.cosechaH,'valor fijo contratista',totCost);
+  setRow('riego',s.riego,'',totCost);
+  setRow('estr',s.estr,'',totCost);
+  setRow('seg',s.seg,'',totCost);
+  set('d-cf-'+c,'− '+usd(r.cf));
+  set('d-arr-'+c,'− '+usd(r.arrH));
+  set('dn-arr-'+c, s.arrMode==='pct' ? (s.arrPct||0)+'% del ingreso bruto' : s.arrQQ+' qq × USD '+r.sojaQQ.toFixed(2));
+  const dpa=el('dp-arr-'+c);if(dpa&&totCost>0){const p=Math.round(r.arrH/totCost*100);dpa.textContent=p+'%';dpa.className='drow-pct '+pctClass(p);}
+
+  // Insumos detalle
+  renderInsInline(c);
+
+  // Escenarios
+  RRANGES[c].esc.forEach((rq,i)=>{
+    const rm=calcCultivo(c,{...s,rinde:rq});
+    const em=el('em'+i+'-'+c);
+    if(em){em.textContent=usd(rm.mb)+'/ha';em.style.color=rm.mb>30?'var(--verde-mid)':rm.mb<0?'var(--rojo)':'var(--amarillo)';}
+  });
+
+  // Total insumos en header comprimido
+  const insTotHdr=el('ins-total-hdr-'+c);
+  if(insTotHdr){
+    const insTotVal=(CFG.insumos[c]||[]).reduce((a,i)=>a+(parseFloat(i.price)||0)*(parseFloat(i.qty)||1),0);
+    insTotHdr.textContent='Total: '+usd(insTotVal)+' / ha';
+  }
+
+  // ── Gráfico donut con 6 grupos diferenciados ──
+  const canvas=el('chart-'+c);
+  if(canvas){
+    if(cultCharts[c])cultCharts[c].destroy();
+
+    // Separar fertilizantes del resto de insumos usando catTotals
+    const fertTotal = r.catTotals['Fertilizante']||0;
+    const insNoFert = Math.max(0, r.insTot - fertTotal);
+
+    const dVals = [
+      Math.max(0, Math.round(r.fleteH + r.comH + r.retH + r.ibH)),  // Flete + Comerc
+      Math.max(0, Math.round(fertTotal)),                              // Fertilizantes
+      Math.max(0, Math.round(insNoFert)),                             // Insumos
+      Math.max(0, Math.round(r.pulvH + s.siembra + r.cosechaH)),     // Labores
+      Math.max(0, Math.round(r.arrH)),                                // Arrendamiento
+      Math.max(0, Math.round(s.riego + s.estr + s.seg)),             // Otros
+    ];
+    const dLabels = ['Flete+Com','Fertilizantes','Insumos','Labores','Arrendamiento','Otros'];
+    const dColors = ['#c0392b','#27ae60','#c9a84c','#7a7870','#1a4731','#2980b9'];
+    const dTotal  = dVals.reduce((a,b)=>a+b,0);
+
+    cultCharts[c]=new Chart(canvas,{
+      type:'doughnut',
+      data:{
+        labels: dLabels.map((l,i)=>{
+          const pct = dTotal>0 ? Math.round(dVals[i]/dTotal*100) : 0;
+          return l+' '+pct+'%';
+        }),
+        datasets:[{
+          data: dVals,
+          backgroundColor: dColors,
+          borderWidth: 2,
+          borderColor: '#f7f5f0'
+        }]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false, cutout:'58%',
+        plugins:{
+          legend:{
+            position:'bottom',
+            labels:{font:{size:9}, padding:5, boxWidth:10}
+          },
+          tooltip:{
+            callbacks:{
+              label: function(ctx){
+                const pct = dTotal>0 ? Math.round(ctx.parsed/dTotal*100) : 0;
+                return ' '+ctx.label.split(' ')[0]+': USD '+Math.round(ctx.parsed)+'/ha ('+pct+'%)';
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+}
+
+function renderCultivo(c){
+  renderCultivoResults(c);
+  ['precio','rinde','flete','com','cosecha','siembra','estr','riego','seg','arr'].forEach(k=>{
+    updTrack(el('sl-'+k+'-'+c));
+  });
+}
+
+function setEsc(c,rinde,idx){
+  const inp=el('sl-rinde-'+c);if(inp){inp.value=rinde;updTrack(inp);}
+  document.querySelectorAll('[id^="esc"][id$="-'+c+'"]').forEach(e=>e.classList.remove('active'));
+  const esc=el('esc'+idx+'-'+c);if(esc)esc.classList.add('active');
+  readSliders(c);renderCultivoResults(c);
+}
+
+// ═══════════════════════════════════════════════
+// INSUMOS INLINE POR CULTIVO
+// ═══════════════════════════════════════════════
+function renderInsInline(c){
+  const cont=el('ins-rows-'+c);
+  if(!cont)return;
+  const ins=CFG.insumos[c]||[];
+  const totCost=calcCultivo(c,CS[c]).cf+calcCultivo(c,CS[c]).arrH;
+  const unlocked=insUnlocked[c]||false;
+
+  const byCat={};
+  ins.forEach((ins,idx)=>{
+    if(!byCat[ins.cat])byCat[ins.cat]=[];
+    byCat[ins.cat].push({...ins,idx});
+  });
+
+  let html='';
+  // Barra de estado lock/unlock
+  html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:${unlocked?'#fff3cd':'#f5f4f0'};border-bottom:1px solid var(--border);">
+    <span style="font-size:11px;color:${unlocked?'#7a5500':'var(--muted)'};">
+      ${unlocked?'🔓 Modo edición activo':'🔒 Solo lectura'}
+    </span>
+    <button onclick="toggleInsLock('${c}')" style="background:${unlocked?'var(--rojo)':'var(--verde-mid)'};color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer;">
+      ${unlocked?'Bloquear':'Editar'}
+    </button>
+  </div>`;
+
+  html+=`<div class="ins-col-hdr"><span>Producto</span><span>Cant.</span><span>Precio USD</span><span>Total</span><span></span></div>`;
+
+  const cats=Object.keys(byCat);
+  cats.forEach(cat=>{
+    const items=byCat[cat];
+    const catTot=items.reduce((a,i)=>a+(parseFloat(i.price)||0)*(parseFloat(i.qty)||1),0);
+    const colHex=CAT_COLORS[cat]||'#7a7870';
+    html+=`<div class="ins-cat-hdr" style="background:${colHex}15;color:${colHex};border-left:3px solid ${colHex};">
+      <span>${cat}</span><span>Subtotal: USD ${Math.round(catTot)}</span>
+    </div>`;
+    items.forEach(({n,cat:icat,qty,price,idx})=>{
+      const total=(parseFloat(price)||0)*(parseFloat(qty)||1);
+      const pctStr=totCost>0?Math.round(total/totCost*100)+'%':'—';
+      if(unlocked){
+        html+=`<div class="ins-row">
+          <input class="ins-name-inp" type="text" value="${n}" data-c="${c}" data-i="${idx}" data-field="n" onchange="updInsumo(this)">
+          <input class="ins-num-inp" type="number" value="${qty}" data-c="${c}" data-i="${idx}" data-field="qty" oninput="updInsumo(this)">
+          <input class="ins-num-inp" type="number" value="${price}" data-c="${c}" data-i="${idx}" data-field="price" oninput="updInsumo(this)">
+          <span class="ins-total">${usd(total)}<br><span style="font-size:10px;color:var(--muted)">${pctStr}</span></span>
+          <button class="ins-del" onclick="delIns('${c}',${idx})">×</button>
+        </div>`;
+      } else {
+        html+=`<div class="ins-row" style="background:${idx%2===0?'#fff':'#fafaf7'};">
+          <span style="font-size:12px;color:var(--text);">${n}</span>
+          <span style="font-size:12px;text-align:right;color:var(--muted);">${qty}</span>
+          <span style="font-size:12px;text-align:right;color:var(--muted);">USD ${price}</span>
+          <span class="ins-total">${usd(total)}<br><span style="font-size:10px;color:var(--muted)">${pctStr}</span></span>
+          <span></span>
+        </div>`;
+      }
+    });
+  });
+
+  if(ins.length===0)html+='<div style="padding:12px 14px;font-size:12px;color:var(--muted);">Sin insumos cargados. Editá desde el panel Admin.</div>';
+
+  if(unlocked){
+    html+=`<div style="padding:8px 14px;display:flex;gap:8px;align-items:center;">
+      <select id="new-cat-${c}" style="padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;background:#fafaf7;font-family:inherit;">
+        ${CATS.map(ct=>`<option value="${ct}">${ct}</option>`).join('')}
+      </select>
+      <button onclick="addInsumoInline('${c}')" style="background:var(--verde-mid);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;">+ Agregar</button>
+    </div>`;
+  }
+
+  cont.innerHTML=html;
+}
+
+function updInsumo(inp){
+  const c=inp.dataset.c,i=parseInt(inp.dataset.i),f=inp.dataset.field;
+  if(CFG.insumos[c]&&CFG.insumos[c][i]){
+    CFG.insumos[c][i][f]=f==='n'?inp.value:(parseFloat(inp.value)||0);
+    renderCultivoResults(c);
+  }
+}
+
+function addInsumoWithPass(c){
+  if(!costEditUnlocked[c]){
+    var pass=prompt('Ingresá la clave para agregar insumos:');
+    if(pass!==ADMIN_PASS){if(pass!==null)alert('Clave incorrecta.');return;}
+    costEditUnlocked[c]=true;
+  }
+  addInsumoInline(c);
+  renderCostEdit(c);
+}
+
+function addInsumoInline(c){
+  const catSel=el('new-cat-'+c);
+  const cat=catSel?catSel.value:'Otro';
+  CFG.insumos[c]=CFG.insumos[c]||[];
+  CFG.insumos[c].push({n:'Nuevo producto',cat,qty:1,price:0});
+  renderCultivoResults(c);
+}
+
+function delIns(c,i){
+  CFG.insumos[c].splice(i,1);
+  renderCultivoResults(c);
+}
+
+// ═══════════════════════════════════════════════
+// COMPARATIVAS
+// ═══════════════════════════════════════════════
+const COMP_MAP={
+  sm:{c1:'soja',c2:'maiz',key:'sm'},
+  gs:{c1:'girasol',c2:'soja',key:'gs'},
+  somt:{c1:'sorgo',c2:'maiz',key:'somt'}
+};
+
+function initCompControls(key){
+  const m=COMP_MAP[key];
+  const setInp=(id,val)=>{const e=el(id);if(e&&e.value==='')e.value=val;};
+  if(key==='sm'){
+    setInp('cc-p-soja',CS['soja'].precio);setInp('cc-r-soja',CS['soja'].rinde);
+    setInp('cc-p-maiz',CS['maiz'].precio);setInp('cc-r-maiz',CS['maiz'].rinde);
+  }else if(key==='gs'){
+    setInp('cc-p-girasol',CS['girasol'].precio);setInp('cc-r-girasol',CS['girasol'].rinde);
+    setInp('cc-p-soja-gs',CS['soja'].precio);setInp('cc-r-soja-gs',CS['soja'].rinde);
+  }else if(key==='somt'){
+    setInp('cc-p-sorgo',CS['sorgo'].precio);setInp('cc-r-sorgo',CS['sorgo'].rinde);
+    setInp('cc-p-maiz-somt',CS['maiz'].precio);setInp('cc-r-maiz-somt',CS['maiz'].rinde);
+  }
+}
+
+let compCharts={};
+function renderComp(key){
+  const m=COMP_MAP[key];
+  // Leer controles
+  let s1={...CS[m.c1]},s2={...CS[m.c2]};
+  if(key==='sm'){
+    s1.precio=parseFloat(el('cc-p-soja')?.value)||s1.precio;
+    s1.rinde=parseFloat(el('cc-r-soja')?.value)||s1.rinde;
+    s2.precio=parseFloat(el('cc-p-maiz')?.value)||s2.precio;
+    s2.rinde=parseFloat(el('cc-r-maiz')?.value)||s2.rinde;
+  }else if(key==='gs'){
+    s1.precio=parseFloat(el('cc-p-girasol')?.value)||s1.precio;
+    s1.rinde=parseFloat(el('cc-r-girasol')?.value)||s1.rinde;
+    s2.precio=parseFloat(el('cc-p-soja-gs')?.value)||s2.precio;
+    s2.rinde=parseFloat(el('cc-r-soja-gs')?.value)||s2.rinde;
+  }else if(key==='somt'){
+    s1.precio=parseFloat(el('cc-p-sorgo')?.value)||s1.precio;
+    s1.rinde=parseFloat(el('cc-r-sorgo')?.value)||s1.rinde;
+    s2.precio=parseFloat(el('cc-p-maiz-somt')?.value)||s2.precio;
+    s2.rinde=parseFloat(el('cc-r-maiz-somt')?.value)||s2.rinde;
+  }
+
+  const r1=calcCultivo(m.c1,s1),r2=calcCultivo(m.c2,s2);
+  const winner=r1.mb>=r2.mb?m.c1:m.c2;
+  const diff=Math.abs(r1.mb-r2.mb);
+
+  // Cards
+  const cardsEl=el('cmp-'+key+'-cards');
+  if(cardsEl){
+    cardsEl.innerHTML=[[m.c1,r1,s1],[m.c2,r2,s2]].map(([c,r,s])=>{
+      const w=c===winner?'comp-winner':'';
+      return`<div class="comp-card ${w}" style="border-color:${CCOLORS[c]};">
+        <div class="comp-cult-name" style="color:${CCOLORS[c]};">${CNAMES[c]}</div>
+        <div class="comp-mb-val ${cls(r.mb)}">${usd(r.mb)}</div>
+        <div class="comp-sub">${s.rinde} qq/ha · PE ${r.pe<9000?r.pe.toFixed(1):'N/D'} qq</div>
+        ${w?'<div style="font-size:10px;color:var(--verde);font-weight:700;margin-top:4px;">✓ CONVIENE</div>':''}
+      </div>`;
+    }).join('');
+  }
+
+  // Conclusión
+  const conclEl=el('cmp-'+key+'-concl');
+  if(conclEl){
+    const wn=CNAMES[winner],ln=CNAMES[winner===m.c1?m.c2:m.c1];
+    conclEl.innerHTML=`Con los valores actuales, <strong>${wn}</strong> supera a ${ln} en <strong>${usd(diff)}/ha</strong>. 
+    Rinde considerado: ${wn} ${winner===m.c1?s1.rinde:s2.rinde} qq/ha vs ${ln} ${winner===m.c1?s2.rinde:s1.rinde} qq/ha.`;
+  }
+
+  // Gráfico barras
+  const barKey=key+'-bar';
+  // ── Donuts de composición ──
+  var donutColors=['#c9a84c','#2d6a4f','#c0392b','#1a4731','#2980b9'];
+  [[m.c1,r1,s1,'c1'],[m.c2,r2,s2,'c2']].forEach(function(arr){
+    var c=arr[0],r=arr[1],s=arr[2],side=arr[3];
+    var dkey=key+'-'+side;
+    var titleEl=el('donut-title-'+dkey);
+    if(titleEl) titleEl.textContent=CNAMES[c]+' — composición';
+    var dCanvas=el('chart-donut-'+dkey);
+    if(!dCanvas)return;
+    if(compCharts['d-'+dkey])compCharts['d-'+dkey].destroy();
+    // Separar insumos de fertilizantes
+    var insList2=CFG.insumos[c]||[];
+    var fertTot=insList2.filter(function(i){return i.cat==='Fertilizante';})
+      .reduce(function(a,i){return a+(parseFloat(i.price)||0)*(parseFloat(i.qty)||1);},0);
+    var insumosTot2=insList2.filter(function(i){return i.cat!=='Fertilizante';})
+      .reduce(function(a,i){return a+(parseFloat(i.price)||0)*(parseFloat(i.qty)||1);},0);
+    var dVals=[
+      Math.max(0,Math.round(insumosTot2)),
+      Math.max(0,Math.round(fertTot)),
+      Math.max(0,Math.round(r.pulvH+s.siembra)),
+      Math.max(0,Math.round(r.cosechaH)),
+      Math.max(0,Math.round(r.fleteH+r.comH)),
+      Math.max(0,Math.round(r.arrH)),
+      Math.max(0,Math.round(s.riego+s.estr+s.seg)),
+    ];
+    var dTotal=dVals.reduce(function(a,b){return a+b;},0);
+    var dLabels=['Insumos','Fertilizantes','Labores','Cosecha','Flete+Com','Arriendo','Extras'];
+    var dColors=['#c9a84c','#27ae60','#7a7870','#2d6a4f','#c0392b','#1a4731','#2980b9'];
+    compCharts['d-'+dkey]=new Chart(dCanvas,{
+      type:'doughnut',
+      data:{
+        labels:dLabels.map(function(l,i){
+          var pct=dTotal>0?Math.round(dVals[i]/dTotal*100):0;
+          return l+' '+pct+'%';
+        }),
+        datasets:[{
+          data:dVals,
+          backgroundColor:dColors,
+          borderWidth:2,borderColor:'#f7f5f0'
+        }]
+      },
+      options:{responsive:true,maintainAspectRatio:false,cutout:'55%',
+        plugins:{
+          legend:{position:'bottom',labels:{font:{size:9},padding:4,boxWidth:10}},
+          tooltip:{callbacks:{label:function(ctx){
+            var tot=ctx.dataset.data.reduce(function(a,b){return a+b;},0);
+            var pct=tot>0?Math.round(ctx.parsed/tot*100):0;
+            return ' '+ctx.label.split(' ')[0]+': USD '+ctx.parsed+' ('+pct+'%)';
+          }}}
+        }}
+    });
+  });
+
+  if(compCharts[barKey])compCharts[barKey].destroy();
+  const barCanvas=el('chart-cmp-'+key+'-bar');
+  if(barCanvas){
+    compCharts[barKey]=new Chart(barCanvas,{
+      type:'bar',
+      data:{
+        labels:['Ingreso bruto','Costos directos','Arrendamiento','Margen bruto'],
+        datasets:[
+          {label:CNAMES[m.c1],data:[r1.venta,r1.cf,r1.arrH,r1.mb].map(Math.round),backgroundColor:CCOLORS[m.c1],borderRadius:4},
+          {label:CNAMES[m.c2],data:[r2.venta,r2.cf,r2.arrH,r2.mb].map(Math.round),backgroundColor:CCOLORS[m.c2],borderRadius:4},
+        ]
+      },
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{position:'top',labels:{font:{size:11}}}},
+        scales:{y:{ticks:{callback:v=>'USD'+v}}}}
+    });
+  }
+
+  // Tabla + gráfico sensibilidad (solo sm)
+  if(key==='sm'){
+    renderSensibilidad(s1,s2);
+  }
+}
+
+let sensChart=null;
+function renderSensibilidad(s1,s2){
+  const precios=[-30,-15,0,15,30].map(d=>Math.round((parseFloat(el('cc-p-soja')?.value)||CS['soja'].precio)+d/10*10));
+  const base_r=parseFloat(el('cc-r-soja')?.value)||CS['soja'].rinde;
+  const rindes=[-10,-5,0,5,10].map(d=>base_r+d);
+
+  // Tabla
+  const tableEl=el('sens-sm-table');
+  if(tableEl){
+    let html=`<table class="sens-table"><thead><tr><th>Rinde\Precio</th>${precios.map(p=>`<th>$${p}</th>`).join('')}</tr></thead><tbody>`;
+    rindes.forEach(rq=>{
+      html+=`<tr><td><b>${rq.toFixed(0)}qq</b></td>`;
+      precios.forEach(p=>{
+        const rm=calcCultivo('soja',{...s1,precio:p,rinde:rq});
+        const c2=rm.mb>30?'s-pos':rm.mb<0?'s-neg':'s-warn';
+        html+=`<td class="${c2}">${Math.round(rm.mb)}</td>`;
+      });
+      html+='</tr>';
+    });
+    html+='</tbody></table><div style="font-size:10px;color:var(--muted);margin-top:6px;">Margen bruto soja (USD/ha) variando precio y rinde ±5 pasos</div>';
+    tableEl.innerHTML=html;
+  }
+
+  // Gráfico líneas
+  const sensCanvas=el('chart-sens-sm');
+  if(sensCanvas){
+    if(sensChart)sensChart.destroy();
+    const datasets=rindes.map((rq,i)=>({
+      label:rq.toFixed(0)+' qq',
+      data:precios.map(p=>Math.round(calcCultivo('soja',{...s1,precio:p,rinde:rq}).mb)),
+      borderColor:`hsl(${120+i*20},50%,40%)`,
+      backgroundColor:'transparent',tension:.3,borderWidth:2,pointRadius:3,
+    }));
+    sensChart=new Chart(sensCanvas,{
+      type:'line',
+      data:{labels:precios.map(p=>'$'+p),datasets},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{position:'top',labels:{font:{size:10},padding:6}}},
+        scales:{y:{ticks:{callback:v=>'USD'+v},title:{display:true,text:'USD/ha'}}}}
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════
+// ADMIN
+// ═══════════════════════════════════════════════
+const ADMIN_PASS='240922';
+const INS_PASS='240922';
+let insUnlocked={};
+
+function toggleInsSection(c){
+  const body=el('ins-rows-'+c);
+  const icon=el('ins-toggle-'+c);
+  if(!body)return;
+  const open=body.classList.toggle('open');
+  if(icon)icon.textContent=open?'▼ Ocultar':'▶ Ver detalle';
+  if(open)renderInsInline(c);
+}
+
+function toggleInsLock(c){
+  if(insUnlocked[c]){insUnlocked[c]=false;renderInsInline(c);return;}
+  const pass=prompt('Ingresá la clave para editar insumos de '+CNAMES[c]+':');
+  if(pass===INS_PASS){insUnlocked[c]=true;renderInsInline(c);}
+  else if(pass!==null)alert('Clave incorrecta.');
+}
+
+
+
+function checkPass(){
+  if(el('admin-pass').value===ADMIN_PASS){
+    el('admin-lock-screen').style.display='none';
+    el('admin-content').classList.add('show');
+    renderAdminPage();
+  }else{
+    el('admin-error').style.display='block';
+    el('admin-pass').value='';
+  }
+}
+function lockAdmin(){
+  el('admin-lock-screen').style.display='block';
+  el('admin-content').classList.remove('show');
+  el('admin-pass').value='';
+}
+
+function renderAdminPage(){
+  const g=(id,v)=>{const e=el(id);if(e)e.value=v;};
+  g('adm-p-soja',CFG.precios.soja);g('adm-p-maiz',CFG.precios.maiz);
+  g('adm-p-girasol',CFG.precios.girasol);g('adm-p-sorgo',CFG.precios.sorgo);
+  g('adm-p-sojaref',CFG.precios.sojaRef);
+  g('adm-p-trigo',CFG.precios.trigo||220);
+  CIDS.forEach(c=>g('adm-r-'+c,CFG.rindes[c]));
+  g('adm-flete',CFG.costos.flete);g('adm-com',CFG.costos.com);
+  g('adm-cosecha',CFG.costos.cosecha);g('adm-siembra',CFG.costos.siembra);
+  g('adm-estr',CFG.costos.estr);
+  if(!CFG.pulvCostoCultivo) CFG.pulvCostoCultivo={soja:CFG.costos.pulvCosto||0,maiz:CFG.costos.pulvCosto||0,girasol:CFG.costos.pulvCosto||0,sorgo:CFG.costos.pulvCosto||0,trigo:CFG.costos.pulvCosto||0};
+  CIDS.forEach(c=>g('adm-pulv-'+c, CFG.pulvCostoCultivo[c] ?? CFG.costos.pulvCosto));
+  CIDS.forEach(c=>g('adm-arr-'+c,CFG.arr[c]));
+  CIDS.forEach(c=>renderAdminIns(c));
+}
+
+function renderAdminIns(c){
+  const cont=el('adm-ins-'+c);if(!cont)return;
+  const ins=CFG.insumos[c]||[];
+  cont.innerHTML=ins.map((i,idx)=>`
+    <div class="admin-ins-row">
+      <div style="display:flex;gap:6px;align-items:center;">
+        <select data-c="${c}" data-i="${idx}" data-f="cat" onchange="updAdmIns(this)" style="padding:4px 6px;border:1.5px solid var(--border);border-radius:5px;font-size:11px;background:#fafaf7;font-family:inherit;">
+          ${CATS.map(ct=>`<option value="${ct}" ${ct===i.cat?'selected':''}>${ct}</option>`).join('')}
+        </select>
+        <input style="flex:1;padding:5px 7px;border:1.5px solid var(--border);border-radius:5px;font-size:12px;background:#fafaf7;font-family:inherit;" type="text" value="${i.n}" data-c="${c}" data-i="${idx}" data-f="n" onchange="updAdmIns(this)">
+      </div>
+      <input style="width:80px;padding:5px 7px;border:1.5px solid var(--border);border-radius:5px;font-size:12px;text-align:right;background:#fafaf7;font-family:inherit;" type="number" value="${i.price}" data-c="${c}" data-i="${idx}" data-f="price" oninput="updAdmIns(this)">
+      <button class="ins-del" onclick="delAdmIns('${c}',${idx})">×</button>
+    </div>`).join('');
+}
+function updAdmIns(inp){
+  const c=inp.dataset.c,i=parseInt(inp.dataset.i),f=inp.dataset.f;
+  if(CFG.insumos[c]&&CFG.insumos[c][i])CFG.insumos[c][i][f]=f==='price'?(parseFloat(inp.value)||0):inp.value;
+}
+function adminAddIns(c){
+  CFG.insumos[c]=CFG.insumos[c]||[];
+  CFG.insumos[c].push({n:'Nuevo producto',cat:'Otro',qty:1,price:0});
+  renderAdminIns(c);
+}
+function delAdmIns(c,i){CFG.insumos[c].splice(i,1);renderAdminIns(c);}
+
+function saveAdmin(){
+  const gN=id=>{const e=el(id);return e?parseFloat(e.value)||0:0;};
+  CFG.precios.soja=gN('adm-p-soja');CFG.precios.maiz=gN('adm-p-maiz');
+  CFG.precios.girasol=gN('adm-p-girasol');CFG.precios.sorgo=gN('adm-p-sorgo');
+  CFG.precios.sojaRef=gN('adm-p-sojaref');
+  if(el('adm-p-trigo'))CFG.precios.trigo=gN('adm-p-trigo');
+  CIDS.forEach(c=>{if(el('adm-r-'+c))CFG.rindes[c]=gN('adm-r-'+c);if(el('adm-arr-'+c))CFG.arr[c]=gN('adm-arr-'+c);});
+  CFG.costos.flete=gN('adm-flete');CFG.costos.com=gN('adm-com');
+  CFG.costos.cosecha=gN('adm-cosecha');CFG.costos.siembra=gN('adm-siembra');
+  CFG.costos.estr=gN('adm-estr');
+  if(!CFG.pulvCostoCultivo) CFG.pulvCostoCultivo={};
+  CIDS.forEach(c=>{ if(el('adm-pulv-'+c)) CFG.pulvCostoCultivo[c]=gN('adm-pulv-'+c); });
+  // Leer insumos desde admin
+  CIDS.forEach(c=>{
+    const cont=el('adm-ins-'+c);if(!cont)return;
+    const rows=cont.querySelectorAll('.admin-ins-row');
+    const arr=[];
+    rows.forEach((row,idx)=>{
+      const f=(field)=>{const e=row.querySelector('[data-f="'+field+'"]');return e?e.value:'';};
+      arr.push({n:f('n'),cat:f('cat'),qty:1,price:parseFloat(f('price'))||0});
+    });
+    CFG.insumos[c]=arr;
+  });
+  saveCFG();
+  initCS();
+  alert('✓ Todos los cambios guardados y aplicados al sistema.');
+}
+
+function resetAdmin(){
+  if(!confirm('¿Restablecer todos los valores originales? Esto borrará tus cambios.'))return;
+  CFG=JSON.parse(JSON.stringify(ORIG));
+  try{localStorage.removeItem(STORAGE_KEY);localStorage.removeItem('lc_marg_v9');}catch(e){}
+  initCS();
+  renderAdminPage();
+  alert('✓ Sistema restablecido a valores originales.');
+}
+
+
+
+// ── IMPRIMIR CULTIVO INDIVIDUAL ──────────────────
+function imprimirCultivo(c){
+  const s   = CS[c];
+  const r   = calcCultivo(c, s);
+  const fecha = new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'});
+  const diff  = s.rinde - r.pe;
+  const clsBox = r.mb>30?'pos':r.mb<0?'neg':'warn';
+  const totalCostos = r.cf + r.arrH;
+  const cultColor = {soja:'#7a5500',maiz:'#7a3800',girasol:'#7a5000',sorgo:'#5b2c6f',trigo:'#1a6b3c'}[c];
+  const cultBg    = {soja:'#fdf6e3',maiz:'#fef0e7',girasol:'#fef9e7',sorgo:'#f5eef8',trigo:'#eafaf1'}[c];
+
+  const insList = CFG.insumos[c]||[];
+  const rowsIns = insList.map(i=>{
+    const val=(parseFloat(i.price)||0)*(parseFloat(i.qty)||1);
+    const pct=totalCostos>0?Math.round(val/totalCostos*100):0;
+    return`<tr><td style="padding-left:14px;">${i.n}</td><td style="color:#7a7870;">${i.cat}</td>
+      <td>${usd(val)}</td><td>${pct}%</td></tr>`;
+  }).join('');
+
+  const labores=[
+    {n:'Pulverizaciones', v:r.pulvH},
+    {n:'Siembra directa',  v:s.siembra},
+    {n:'Cosecha contratista', v:r.cosechaH},
+    {n:'Flete + comercializ.', v:r.fleteH+r.comH},
+    {n:'Costo de estructura', v:s.estr},
+    {n:'Riego', v:s.riego},
+    {n:'Seguro', v:s.seg},
+  ].filter(x=>x.v>0);
+  const rowsLab = labores.map(({n,v})=>{
+    const pct=totalCostos>0?Math.round(v/totalCostos*100):0;
+    return`<tr><td style="padding-left:14px;">${n}</td><td style="color:#7a7870;">Labor/Servicio</td>
+      <td>${usd(v)}</td><td>${pct}%</td></tr>`;
+  }).join('');
+
+  const page = `<div class="print-page">
+    <div class="print-logo-row">
+      <div>
+        <div class="print-brand">LEANDRO CASTELLANO</div>
+        <div class="print-brand-sub">Administrador de Empresas | Gestión Comercial Agropecuariapecuaria</div>
+      </div>
+      <div class="print-meta-right">
+        <strong>MB ${CNAMES[c]}</strong><br>
+        Campaña 2026/27 · ${fecha}
+      </div>
+    </div>
+
+    <div class="print-cult-badge" style="background:${cultBg};color:${cultColor};">
+      ${CNAMES[c].toUpperCase()} — MARGEN BRUTO
+    </div>
+
+    <div class="print-kpi-grid">
+      <div class="print-kpi"><div class="print-kpi-lbl">Rinde esperado</div><div class="print-kpi-val">${s.rinde} qq/ha</div></div>
+      <div class="print-kpi"><div class="print-kpi-lbl">Precio ${CNAMES[c]}</div><div class="print-kpi-val">USD ${s.precio}/tn</div></div>
+      <div class="print-kpi"><div class="print-kpi-lbl">Punto de equilibrio</div><div class="print-kpi-val">${r.pe<9000?r.pe.toFixed(1):'N/D'} qq/ha</div></div>
+      <div class="print-kpi"><div class="print-kpi-lbl">Diferencia PE</div><div class="print-kpi-val ${diff>=0?'pos':'neg'}">${diff>=0?'+':''}${diff.toFixed(1)} qq</div></div>
+    </div>
+
+    <div class="print-total-box ${clsBox}">
+      <span class="print-total-lbl">MARGEN BRUTO / HA</span>
+      <span class="print-total-val">${usd(r.mb)}</span>
+    </div>
+
+    <div class="print-section-title">Detalle de costos</div>
+    <table class="print-table">
+      <thead><tr><th>Concepto</th><th>Categoría</th><th>USD/ha</th><th>% del costo</th></tr></thead>
+      <tbody>
+        <tr class="subtotal"><td colspan="4">Insumos base</td></tr>
+        ${rowsIns}
+        <tr class="subtotal"><td colspan="4">Labores y servicios</td></tr>
+        ${rowsLab}
+        <tr class="subtotal"><td colspan="4">Arrendamiento</td></tr>
+        <tr><td style="padding-left:14px;">Arriendo proporcional</td><td style="color:#7a7870;">Arrendamiento</td>
+          <td>${usd(r.arrH)}</td>
+          <td>${totalCostos>0?Math.round(r.arrH/totalCostos*100):0}%</td></tr>
+        <tr class="total-row"><td colspan="2">TOTAL COSTOS</td><td>${usd(totalCostos)}</td><td>100%</td></tr>
+      </tbody>
+    </table>
+
+    <div class="print-footer">
+      <span>Leandro Castellano · Administrador de Empresas | Gestión Comercial Agropecuariapecuaria · 351-512-5003</span>
+      <span>Valores estimativos · Campaña 2026/27</span>
+    </div>
+  </div>`;
+
+  const out = el('print-output');
+  if(out) out.innerHTML = page;
+  document.body.classList.add('printing-cult');
+  window.print();
+  setTimeout(()=>document.body.classList.remove('printing-cult'), 500);
+}
+
+
+
+// ── VME SELECTORES ───────────────────────────
+let vmeOIP='N', vmePVO='N';
+
+
+function toggleDashResumen(){
+  var body=el('dash-resumen-body');
+  var icon=el('dash-resumen-toggle');
+  if(!body)return;
+  var open=body.style.display==='none';
+  body.style.display=open?'block':'none';
+  if(icon)icon.textContent=open?'▼':'▶';
+}
+
+function toggleVmeIntro(){
+  var body=el('vme-intro-body');
+  var icon=el('vme-intro-toggle');
+  if(!body)return;
+  var open=body.style.display==='none'||body.style.display==='';
+  body.style.display=open?'block':'none';
+  if(icon)icon.textContent=open?'▼ Cerrar':'▶ Leer más';
+}
+
+function setOIP(val){
+  vmeOIP=val;
+  ['M','N','B'].forEach(v=>{
+    const lbl=el('lbl-oip-'+v.toLowerCase());
+    const dot=el('dot-oip-'+v.toLowerCase());
+    if(!lbl||!dot)return;
+    const sel=v===val;
+    lbl.style.borderColor=sel?'var(--verde-mid)':'var(--border)';
+    lbl.style.background=sel?'#f0faf5':'';
+    dot.style.background=sel?'var(--verde-mid)':''  ;
+    dot.style.borderColor=sel?'var(--verde-mid)':'#ccc';
+  });
+  updateEscSeleccionado();
+  renderVME();
+}
+
+function setPVO(val){
+  vmePVO=val;
+  ['M','N','B'].forEach(v=>{
+    const lbl=el('lbl-pvo-'+v.toLowerCase());
+    const dot=el('dot-pvo-'+v.toLowerCase());
+    if(!lbl||!dot)return;
+    const sel=v===val;
+    lbl.style.borderColor=sel?'var(--verde-mid)':'var(--border)';
+    lbl.style.background=sel?'#f0faf5':'';
+    dot.style.background=sel?'var(--verde-mid)':'';
+    dot.style.borderColor=sel?'var(--verde-mid)':'#ccc';
+  });
+  updateEscSeleccionado();
+  renderVME();
+}
+
+function updateEscSeleccionado(){
+  const esc=vmeOIP+'/'+vmePVO;
+  const probs={'M/M':6.25,'M/N':12.5,'M/B':6.25,'N/M':12.5,'N/N':25,'N/B':12.5,'B/M':6.25,'B/N':12.5,'B/B':6.25};
+  const noms={'M':'Malo','N':'Neutro','B':'Bueno'};
+  const escEl=el('vme-esc-seleccionado');
+  const probEl=el('vme-esc-prob');
+  if(escEl) escEl.textContent=esc+' — '+noms[vmeOIP]+' OIP / '+noms[vmePVO]+' PVO';
+  if(probEl) probEl.textContent='Probabilidad: '+probs[esc]+'%';
+}
+
+function toggleVmeTable(){
+  const body=el('vme-table-body');
+  const icon=el('vme-table-toggle');
+  if(!body)return;
+  const isOpen=body.style.display!=='none';
+  body.style.display=isOpen?'none':'block';
+  if(icon)icon.textContent=isOpen?'▶ Ver tabla':'▼ Ocultar';
+}
+
+function toggleVmeExtras(){
+  var body=el('vme-extras');
+  var icon=el('vme-extras-toggle');
+  if(!body)return;
+  var open=body.style.display==='none';
+  body.style.display=open?'block':'none';
+  if(icon)icon.textContent=open?'▼ Ocultar':'▶ Ver análisis';
+  if(open && body.innerHTML==='') renderVME();
+}
+
+function toggleVmeParams(){
+  const body=el('vme-params-body');
+  const icon=el('vme-params-toggle');
+  if(!body)return;
+  const open=!body.style.display||body.style.display==='none';
+  body.style.display=open?'block':'none';
+  if(icon)icon.textContent=open?'▼ Ocultar':'▶ Ver / editar';
+}
+
+// ══════════════════════════════════════════════════
+// VME — Valor Monetario Esperado
+// ══════════════════════════════════════════════════
+
+// Probabilidades fijas de cada escenario OIP/PVO
+const VME_PROBS = [0.0625,0.125,0.0625,0.125,0.25,0.125,0.0625,0.125,0.0625];
+const VME_ESCENARIOS = ['M/M','M/N','M/B','N/M','N/N','N/B','B/M','B/N','B/B'];
+
+function gVME(id){ const e=el(id); return e?parseFloat(e.value)||0:0; }
+
+function calcVME(){
+  // Leer rindes desde los inputs
+  const rS1  = [gVME('vme-r-s1-mal'),gVME('vme-r-s1-nor'),gVME('vme-r-s1-bue')]; // depende PVO (2do factor)
+  const rTri = [gVME('vme-r-tri-mal'),gVME('vme-r-tri-nor'),gVME('vme-r-tri-bue')]; // depende OIP (1er factor)
+  const rS2  = [
+    gVME('vme-r-s2-mm'),gVME('vme-r-s2-mn'),gVME('vme-r-s2-mb'),
+    gVME('vme-r-s2-nm'),gVME('vme-r-s2-nn'),gVME('vme-r-s2-nb'),
+    gVME('vme-r-s2-bm'),gVME('vme-r-s2-bn'),gVME('vme-r-s2-bb'),
+  ];
+  const rMz   = [gVME('vme-r-mz-mal'), gVME('vme-r-mz-nor'), gVME('vme-r-mz-bue')];  // depende PVO
+  const rMzT  = [gVME('vme-r-mzt-mal'),gVME('vme-r-mzt-nor'),gVME('vme-r-mzt-bue')]; // maíz tardío depende PVO
+
+  // Precios del sistema (ajustados por comercialización y flete)
+  const pSoja  = CFG.precios.soja;
+  const pTrigo = CFG.precios.trigo||220;
+  const pMaiz  = CFG.precios.maiz;
+  const flete  = CFG.costos.flete;
+  const com    = CFG.costos.com/100;
+
+  // Precio neto: precio - flete(tn) - comercialización
+  // Convertir a USD/qq: precio/10
+  const pNetSoja  = (pSoja/10)*(1-com) - flete/10;
+  const pNetTrigo = (pTrigo/10)*(1-com) - flete/10;
+  const pNetMaiz  = (pMaiz/10)*(1-com) - flete/10;
+
+  // Costos de la planilla CREA (usando costos del sistema como base)
+  const costoS1   = calcCultivo('soja',  CS['soja']).cf + calcCultivo('soja',  CS['soja']).arrH;
+  const costoTrigo= calcCultivo('trigo', CS['trigo']).cf + calcCultivo('trigo', CS['trigo']).arrH;
+  const costoS2   = costoTrigo * 0.77; // soja 2° ≈ 77% del costo de soja 1° (sin siembra anticipada)
+  const costoMaiz = calcCultivo('maiz',  CS['maiz']).cf  + calcCultivo('maiz',  CS['maiz']).arrH;
+
+  // Rindes por escenario expandidos (9 escenarios = OIP × PVO)
+  // OIP: índices 0=M,1=N,2=B → filas 0-2, 3-5, 6-8
+  // PVO: índices 0=M,1=N,2=B → columnas 0,3,6 / 1,4,7 / 2,5,8
+  const OIP_IDX = [0,0,0,1,1,1,2,2,2]; // OIP para cada escenario
+  const PVO_IDX = [0,1,2,0,1,2,0,1,2]; // PVO para cada escenario
+
+  const mS1 = VME_ESCENARIOS.map((_,i) => rS1[PVO_IDX[i]] * pNetSoja - costoS1);
+  const mTri= VME_ESCENARIOS.map((_,i) => rTri[OIP_IDX[i]] * pNetTrigo - costoTrigo);
+  const mS2 = rS2.map(r => r * pNetSoja * 0.95 - costoS2); // soja 2° precio 5% menor
+  const mMz  = VME_ESCENARIOS.map((_,i) => rMz[PVO_IDX[i]] * pNetMaiz - costoMaiz);
+  // Trigo+Maíz tardío: suma trigo (OIP) + maíz tardío (PVO) - costo maíz tardío (≈85% del maíz 1°)
+  const costoMzT = costoMaiz * 0.85;
+  const mTMzT = VME_ESCENARIOS.map((_,i) => mTri[i] + rMzT[PVO_IDX[i]] * pNetMaiz - costoMzT);
+
+  // Trigo+Soja2° = suma de los dos
+  const mTS2 = VME_ESCENARIOS.map((_,i) => mTri[i] + mS2[i]);
+
+  // VME = suma ponderada
+  const vme = (marg) => marg.reduce((a,v,i)=>a+v*VME_PROBS[i],0);
+  const vmeS1  = vme(mS1);
+  const vmeTS2 = vme(mTS2);
+  const vmeMz   = vme(mMz);
+  const vmeTMzT = vme(mTMzT);
+
+  // Desvío estándar y CV
+  const sd = (marg,vmeVal) => Math.sqrt(marg.reduce((a,v,i)=>a+VME_PROBS[i]*(v-vmeVal)**2,0));
+  const sdS1  = sd(mS1,vmeS1);
+  const sdTS2 = sd(mTS2,vmeTS2);
+  const sdMz   = sd(mMz,vmeMz);
+  const sdTMzT = sd(mTMzT,vmeTMzT);
+  const cvS1  = vmeS1!==0?Math.abs(sdS1/vmeS1):9999;
+  const cvTS2 = vmeTS2!==0?Math.abs(sdTS2/vmeTS2):9999;
+  const cvMz   = vmeMz!==0  ?Math.abs(sdMz/vmeMz):9999;
+  const cvTMzT = vmeTMzT!==0?Math.abs(sdTMzT/vmeTMzT):9999;
+
+  return{
+    mS1,mTS2,mMz,mTMzT,
+    vmeS1,vmeTS2,vmeMz,vmeTMzT,
+    sdS1,sdTS2,sdMz,sdTMzT,
+    cvS1,cvTS2,cvMz,cvTMzT,
+    pNetSoja,pNetTrigo,pNetMaiz,
+    costoS1,costoTrigo,costoS2,costoMaiz,
+  };
+}
+
+let chartVME=null;
+function renderVME(){
+  const d=calcVME();
+
+  // ── Tabla de márgenes ──
+  const tbody=el('vme-margenes-body');
+  if(tbody){
+    const rows=[
+      {lbl:'Soja 1°',       marg:d.mS1,   color:'#c9a84c'},
+      {lbl:'Trigo/Soja 2°', marg:d.mTS2,  color:'#27ae60'},
+      {lbl:'Maíz',          marg:d.mMz,   color:'#e67e22'},
+      {lbl:'Trigo/Maíz tard.',marg:d.mTMzT,color:'#5d6fc7'},
+    ];
+    const selIdx=['M/M','M/N','M/B','N/M','N/N','N/B','B/M','B/N','B/B'].indexOf(vmeOIP+'/'+vmePVO);
+    tbody.innerHTML=rows.map(({lbl,marg,color})=>{
+      const cells=marg.map((v,i)=>{
+        const cls2=v>50?'vme-cell-good':v<0?'vme-cell-bad':'vme-cell-mid';
+        const highlight=i===selIdx?'outline:3px solid var(--dorado);outline-offset:-2px;':'';
+        return`<td class="${cls2}" style="${highlight}">${Math.round(v)}</td>`;
+      }).join('');
+      return`<tr><td style="color:${color};font-weight:700;">${lbl}</td>${cells}</tr>`;
+    }).join('');
+  }
+
+  // ── Barras comparativas ──
+  const barsCont=el('vme-barras');
+  if(barsCont){
+    const alts=[
+      {lbl:'Soja 1°',        vme:d.vmeS1,   cv:d.cvS1,   color:'#c9a84c'},
+      {lbl:'Trigo/Soja 2°',  vme:d.vmeTS2,  cv:d.cvTS2,  color:'#27ae60'},
+      {lbl:'Maíz',           vme:d.vmeMz,   cv:d.cvMz,   color:'#e67e22'},
+      {lbl:'Trigo/Maíz tard.',vme:d.vmeTMzT, cv:d.cvTMzT, color:'#5d6fc7'},
+    ];
+    const maxVME=Math.max(...alts.map(a=>Math.abs(a.vme)),1);
+    barsCont.innerHTML=alts.map(({lbl,vme,color})=>{
+      const pct=Math.max(0,Math.min(100,vme/maxVME*100));
+      const clsV=vme>30?'pos':vme<0?'neg':'warn';
+      return`<div class="vme-bar-row">
+        <span class="vme-bar-lbl" style="color:${color};">${lbl}</span>
+        <div class="vme-bar-bg"><div class="vme-bar-fill" style="width:${pct}%;background:${color};"></div></div>
+        <span class="vme-bar-val ${clsV}">USD ${Math.round(vme)}</span>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Cards resultado ──
+  const cards=el('vme-result-cards');
+  if(cards){
+    const alts=[
+      {lbl:'Soja 1°',        vme:d.vmeS1,   cv:d.cvS1,   color:'#c9a84c', desc:'Sembrar solo soja de primera'},
+      {lbl:'Trigo/Soja 2°',  vme:d.vmeTS2,  cv:d.cvTS2,  color:'#27ae60', desc:'Doble cultivo trigo + soja de segunda'},
+      {lbl:'Maíz',           vme:d.vmeMz,   cv:d.cvMz,   color:'#e67e22', desc:'Sembrar solo maíz'},
+      {lbl:'Trigo/Maíz tard.',vme:d.vmeTMzT, cv:d.cvTMzT, color:'#5d6fc7', desc:'Trigo + maíz tardío mismo campo'},
+    ];
+    const maxVme=Math.max(d.vmeS1,d.vmeTS2,d.vmeMz,d.vmeTMzT);
+    const minCV=Math.min(d.cvS1,d.cvTS2,d.cvMz,d.cvTMzT);
+    cards.innerHTML=alts.map(function(a){
+      var vme=a.vme,cv=a.cv,lbl=a.lbl,color=a.color,desc=a.desc||'';
+      var isWinner=Math.round(vme)===Math.round(maxVme);
+      var isSafest=Math.abs(cv-minCV)<0.01;
+      var cvColor=cv<1.0?'#2d6a4f':cv<2?'#f4a429':'#c0392b';
+      var cvLabel=cv<1.0?'Riesgo bajo':cv<2?'Riesgo medio':'Riesgo alto';
+      var cvDesc=cv<1.0?'Resultado estable':cv<2?'Variabilidad moderada':'Resultado muy variable';
+      var clsV=vme>30?'pos':vme<0?'neg':'warn';
+      return '<div class="vme-result-card '+(isWinner?'winner':'')+'">'
+        +(isWinner?'<div class="vme-winner-badge">✓ MAYOR VME</div>':'')
+        +(isSafest&&!isWinner?'<div class="vme-winner-badge" style="background:#2980b9;">🛡 MENOR RIESGO</div>':'')
+        +'<div class="vme-cult-name" style="color:'+color+';">'+lbl+'</div>'
+        +'<div style="font-size:10px;color:var(--hint);margin-bottom:6px;">'+desc+'</div>'
+        +'<div class="vme-value '+clsV+'">USD '+Math.round(vme)+'</div>'
+        +'<div style="font-size:10px;color:var(--muted);margin-bottom:8px;">margen esperado / ha</div>'
+        +'<div style="background:#f5f4f0;border-radius:7px;padding:8px 10px;">'
+        +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">'
+        +'<div style="width:8px;height:8px;border-radius:50%;background:'+cvColor+';flex-shrink:0;"></div>'
+        +'<span style="font-size:11px;font-weight:700;color:'+cvColor+';">C.V. '+cv.toFixed(2)+' — '+cvLabel+'</span>'
+        +'</div>'
+        +'<div style="font-size:10px;color:var(--muted);">'+cvDesc+'</div>'
+        +'<div style="font-size:10px;color:var(--hint);margin-top:3px;">Variación esperada: ±'+Math.round(cv*100)+'% del VME</div>'
+        +'</div>'
+        +'</div>';
+    }).join('');
+  }
+
+  // ── Conclusión automática ──
+  // ── EXTRAS: ganadores por escenario + peor caso ──────────────
+  var extraEl=el('vme-extras');
+  if(extraEl){
+    var todosAlts=[
+      {lbl:'Soja 1°',        margs:d.mS1,    color:'#c9a84c'},
+      {lbl:'Trigo/Soja 2°',  margs:d.mTS2,   color:'#27ae60'},
+      {lbl:'Maíz',           margs:d.mMz,    color:'#e67e22'},
+      {lbl:'Trigo/Maíz tard.',margs:d.mTMzT, color:'#5d6fc7'},
+    ];
+    var ganaEn=[0,0,0,0];
+    for(var ei2=0;ei2<9;ei2++){
+      var vals2=todosAlts.map(function(a){return a.margs[ei2];});
+      var maxV2=Math.max.apply(null,vals2);
+      vals2.forEach(function(v,ai){if(Math.abs(v-maxV2)<1)ganaEn[ai]++;});
+    }
+    var peorCaso=todosAlts.map(function(a){return Math.round(Math.min.apply(null,a.margs));});
+    var mejorCaso=todosAlts.map(function(a){return Math.round(Math.max.apply(null,a.margs));});
+    extraEl.innerHTML='<div style="padding:10px 14px;font-size:11px;color:var(--muted);border-bottom:1px solid var(--border);">'
+      +'De los <strong>9 escenarios posibles</strong>: ¿en cuántos conviene cada alternativa? · ¿Cuánto se gana en el mejor y peor año?'
+      +'</div>'
+      +todosAlts.map(function(a,i){
+        var barW=Math.round(ganaEn[i]/9*100);
+        return '<div style="padding:10px 14px;border-bottom:1px solid var(--border);">'
+          +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
+          +'<span style="font-size:12px;font-weight:700;color:'+a.color+';">'+a.lbl+'</span>'
+          +'<span style="font-size:12px;color:var(--muted);">Conviene en <strong style="color:'+a.color+';">'+ganaEn[i]+'</strong> de cada 9 años posibles</span>'
+          +'</div>'
+          +'<div style="background:#eeecea;border-radius:4px;height:8px;overflow:hidden;margin-bottom:8px;">'
+          +'<div style="width:'+barW+'%;height:100%;background:'+a.color+';border-radius:4px;"></div>'
+          +'</div>'
+          +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
+          +'<div style="background:#fdecea;border-radius:7px;padding:6px 10px;">'
+          +'<div style="font-size:10px;color:#c0392b;font-weight:600;margin-bottom:1px;">⚠ Si el año sale muy mal</div>'
+          +'<div style="font-size:14px;font-weight:700;color:'+(peorCaso[i]<0?'#c0392b':'#2d6a4f')+';">USD '+peorCaso[i]+'/ha</div>'
+          +'</div>'
+          +'<div style="background:#d8f3dc;border-radius:7px;padding:6px 10px;">'
+          +'<div style="font-size:10px;color:#1a4731;font-weight:600;margin-bottom:1px;">✓ Si el año sale muy bien</div>'
+          +'<div style="font-size:14px;font-weight:700;color:#2d6a4f;">USD '+mejorCaso[i]+'/ha</div>'
+          +'</div>'
+          +'</div>'
+          +'</div>';
+      }).join('');
+  }
+
+  const conclus=el('vme-conclusion');
+  if(conclus){
+    const alts=[
+      {lbl:'Soja 1°',    desc:'sembrar solo soja de primera',       vme:d.vmeS1,  cv:d.cvS1,  margs:d.mS1},
+      {lbl:'Trigo/Soja 2°',desc:'doble cultivo trigo + soja de segunda',vme:d.vmeTS2,cv:d.cvTS2,margs:d.mTS2},
+      {lbl:'Maíz',       desc:'sembrar solo maíz',                  vme:d.vmeMz,  cv:d.cvMz,  margs:d.mMz},
+    ];
+    const byVME=[...alts].sort((a,b)=>b.vme-a.vme);
+    const byCV=[...alts].sort((a,b)=>a.cv-b.cv);
+    const top=byVME[0];
+    const safest=byCV[0];
+    const diff=Math.round(top.vme - byVME[1].vme);
+
+    // Escenario seleccionado actualmente
+    const escActual=vmeOIP+'/'+vmePVO;
+    const escIdx=['M/M','M/N','M/B','N/M','N/N','N/B','B/M','B/N','B/B'].indexOf(escActual);
+    const margEscActual=alts.map(a=>({lbl:a.lbl,v:Math.round(a.margs[escIdx])}));
+    const mejorEscActual=[...margEscActual].sort((a,b)=>b.v-a.v)[0];
+
+    const noms={'M':'Malo','N':'Neutro','B':'Bueno'};
+    const escNom=noms[vmeOIP]+'/'+noms[vmePVO];
+
+    var escActualStr = vmeOIP+'/'+vmePVO;
+    var escIdxC = ['M/M','M/N','M/B','N/M','N/N','N/B','B/M','B/N','B/B'].indexOf(escActualStr);
+    var nomsC = {'M':'Malo','N':'Neutro','B':'Bueno'};
+    var escNomC = nomsC[vmeOIP]+'/'+nomsC[vmePVO];
+    var margEscC = alts.map(function(a){return {lbl:a.lbl, v:Math.round(a.margs[escIdxC])};});
+    var mejorC = margEscC.slice().sort(function(a,b){return b.v-a.v;})[0];
+    var topC = byVME[0];
+    var safestC = byCV[0];
+    var diffC = Math.round(topC.vme - byVME[1].vme);
+
+    var linea1 = '<strong style="display:block;margin-bottom:6px;font-size:14px;">Escenario seleccionado: '+escActualStr+' ('+escNomC+')</strong>';
+    var linea2 = 'En un año '+escNomC.toLowerCase()+', la mejor estrategia es <strong>'+mejorC.lbl+'</strong> con un margen de <strong>USD '+mejorC.v+'/ha</strong>.<br>';
+    var linea3 = margEscC.map(function(a){return a.lbl+': USD '+a.v+'/ha';}).join(' · ')+'<br><br>';
+    var linea4 = '<strong style="display:block;margin-bottom:4px;">Considerando todos los escenarios posibles (VME):</strong>';
+    var linea5 = 'La estrategia de mayor retorno esperado es <strong>'+topC.lbl+'</strong> (USD '+Math.round(topC.vme)+'/ha promedio ponderado), superando a '+byVME[1].lbl+' en USD '+diffC+'/ha. ';
+    var linea6 = topC.lbl===safestC.lbl
+      ? 'Además tiene el <strong>menor C.V. ('+topC.cv.toFixed(2)+')</strong> — es la alternativa más rentable y más estable.'
+      : 'La estrategia más estable es <strong>'+safestC.lbl+'</strong> (C.V. '+safestC.cv.toFixed(2)+' vs '+topC.cv.toFixed(2)+'). Si la certeza es prioritaria, esta es la opción más segura.';
+
+    conclus.innerHTML = '<div class="vme-concl-title">📊 Conclusión</div>'+linea1+linea2+linea3+linea4+linea5+linea6;  }
+
+  // ── Gráfico de líneas ──
+  if(chartVME)chartVME.destroy();
+  const canvas=el('chart-vme');
+  if(canvas){
+    chartVME=new Chart(canvas,{
+      type:'line',
+      data:{
+        labels:VME_ESCENARIOS,
+        datasets:[
+          {label:'Soja 1°',         data:d.mS1.map(Math.round),   borderColor:'#c9a84c',backgroundColor:'transparent',tension:.3,borderWidth:2,pointRadius:3},
+          {label:'Trigo/Soja 2°',   data:d.mTS2.map(Math.round),  borderColor:'#27ae60',backgroundColor:'transparent',tension:.3,borderWidth:2,pointRadius:3},
+          {label:'Maíz',            data:d.mMz.map(Math.round),   borderColor:'#e67e22',backgroundColor:'transparent',tension:.3,borderWidth:2,pointRadius:3},
+          {label:'Trigo/Maíz tard.',data:d.mTMzT.map(Math.round), borderColor:'#5d6fc7',backgroundColor:'transparent',tension:.3,borderWidth:2,pointRadius:3},
+        ]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{position:'top',labels:{font:{size:11},padding:8}}},
+        scales:{
+          y:{ticks:{callback:v=>'USD'+v},title:{display:true,text:'USD/ha'}},
+          x:{grid:{color:'rgba(0,0,0,.05)'}}
+        }
+      }
+    });
+  }
+}
+
+
+// ── MODO ARRENDAMIENTO ──────────────────────────
+// 'qq' = qq fijos de soja/ha | 'pct' = % del ingreso bruto
+var arrMode = {};  // {cultivo: 'qq'|'pct'}
+CIDS.forEach(function(c){ arrMode[c] = 'qq'; });
+
+function toggleArrMode(c){ setArrMode(c, arrMode[c]==='qq'?'pct':'qq'); }
+
+function setArrMode(c, mode){
+  arrMode[c] = mode;
+  var inp = el('sl-arr-'+c);
+  var btnQQ  = el('arr-btn-qq-'+c);
+  var btnPct = el('arr-btn-pct-'+c);
+  // Resaltar botón activo
+  if(btnQQ){
+    btnQQ.style.background  = mode==='qq'?'var(--verde-mid)':'transparent';
+    btnQQ.style.color       = mode==='qq'?'#fff':'var(--muted)';
+    btnQQ.style.borderColor = mode==='qq'?'var(--verde-mid)':'var(--border)';
+  }
+  if(btnPct){
+    btnPct.style.background  = mode==='pct'?'var(--verde-mid)':'transparent';
+    btnPct.style.color       = mode==='pct'?'#fff':'var(--muted)';
+    btnPct.style.borderColor = mode==='pct'?'var(--verde-mid)':'var(--border)';
+  }
+  if(inp){
+    if(mode==='pct'){ inp.min=0; inp.max=40; inp.step=0.5; inp.value=CS[c].arrPct||20; }
+    else            { inp.min=0; inp.max=14; inp.step=0.5; inp.value=CS[c].arrQQ; }
+    var p=Math.round((inp.value-inp.min)/(inp.max-inp.min)*100);
+    inp.style.background='linear-gradient(to right,var(--verde-mid) '+p+'%,#e8e5de '+p+'%)';
+  }
+  readSliders(c);
+  renderCultivoResults(c);
+}
+
+
+function toggleCostEdit(c){
+  var body=el('costedit-body-'+c);
+  var icon=el('costedit-toggle-'+c);
+  if(!body)return;
+  var open=body.style.display==='none';
+  body.style.display=open?'block':'none';
+  if(icon)icon.textContent=open?'▼ Cerrar':'▶ Ver';
+  if(open) renderCostEdit(c);
+}
+
+// Estado de desbloqueo por cultivo para edición rápida
+var costEditUnlocked = {};
+
+function renderCostEdit(c){
+  var cont=el('costedit-insumos-'+c);
+  if(!cont)return;
+  var ins=CFG.insumos[c]||[];
+  var r=calcCultivo(c,CS[c]);
+  var totCost=r.cf+r.arrH;
+  var unlocked=costEditUnlocked[c]||false;
+  cont.innerHTML='';
+
+  // ── Barra acceso: bloquear / desbloquear con clave ──
+  var bar=document.createElement('div');
+  bar.style.cssText='display:flex;justify-content:space-between;align-items:center;'
+    +'padding:8px 14px;background:'+(unlocked?'#fff9e6':'#f5f4f0')+';border-bottom:1px solid var(--border);';
+  var statusDiv=document.createElement('div');
+  statusDiv.innerHTML=unlocked
+    ?'<span style="font-size:11px;font-weight:600;color:#7a5500;">🔓 Editando precios</span>'
+    :'<span style="font-size:11px;color:var(--muted);">🔒 Solo lectura — tocá Editar para modificar</span>';
+  var lockBtn=document.createElement('button');
+  lockBtn.textContent=unlocked?'Bloquear':'Editar';
+  lockBtn.style.cssText='background:'+(unlocked?'var(--rojo)':'var(--verde-mid)')
+    +';color:#fff;border:none;border-radius:7px;padding:5px 14px;font-size:11px;font-weight:700;cursor:pointer;';
+  (function(cc){
+    lockBtn.onclick=function(){
+      if(costEditUnlocked[cc]){
+        costEditUnlocked[cc]=false; renderCostEdit(cc);
+      } else {
+        var pass=prompt('Ingresá la clave para editar costos de '+CNAMES[cc]+':');
+        if(pass===ADMIN_PASS){costEditUnlocked[cc]=true;renderCostEdit(cc);}
+        else if(pass!==null)alert('Clave incorrecta.');
+      }
+    };
+  })(c);
+  bar.appendChild(statusDiv); bar.appendChild(lockBtn);
+  cont.appendChild(bar);
+
+  // ── Colores por categoría ──
+  var catColorsLocal={
+    'Fertilizante':'#27ae60','Semilla':'#c9a84c',
+    'Herbicida pre':'#2980b9','Herbicida pos':'#3498db',
+    'Insecticida':'#e67e22','Fungicida':'#8e44ad',
+    'Coadyuvante':'#7a7870','Otro':'#b5b2a8'
+  };
+
+  // ── Agrupar por categoría ──
+  var byCat={};
+  ins.forEach(function(item,idx){
+    if(!byCat[item.cat])byCat[item.cat]=[];
+    byCat[item.cat].push({item:item,idx:idx});
+  });
+
+  if(ins.length===0){
+    var empty=document.createElement('div');
+    empty.style.cssText='padding:14px;font-size:12px;color:var(--muted);text-align:center;';
+    empty.textContent='Sin insumos cargados.';
+    cont.appendChild(empty);
+  }
+
+  Object.keys(byCat).forEach(function(cat){
+    var items=byCat[cat];
+    var color=catColorsLocal[cat]||'#7a7870';
+    var catTot=items.reduce(function(a,x){return a+(parseFloat(x.item.price)||0)*(parseFloat(x.item.qty)||1);},0);
+    var catPct=totCost>0?Math.round(catTot/totCost*100):0;
+
+    // Header de categoría
+    var catHdr=document.createElement('div');
+    catHdr.style.cssText='display:flex;justify-content:space-between;align-items:center;'
+      +'padding:6px 14px;background:'+color+'12;border-top:2px solid '+color+';border-bottom:1px solid var(--border);';
+    catHdr.innerHTML='<span style="font-size:10px;font-weight:700;color:'+color+';text-transform:uppercase;letter-spacing:.07em;">'+cat+'</span>'
+      +'<span style="font-size:11px;font-weight:700;color:'+color+';">USD '+Math.round(catTot)
+      +' &nbsp;<span style="background:'+color+'22;border-radius:4px;padding:1px 6px;">'+catPct+'%</span></span>';
+    cont.appendChild(catHdr);
+
+    // Filas de productos
+    items.forEach(function(x){
+      var item=x.item; var idx=x.idx;
+      var val=(parseFloat(item.price)||0)*(parseFloat(item.qty)||1);
+      var pct=totCost>0?Math.round(val/totCost*100):0;
+      var pctColor=pct>=15?'#c0392b':pct>=8?'#f4a429':'#2d6a4f';
+
+      var row=document.createElement('div');
+      row.style.cssText='display:grid;grid-template-columns:1fr 72px 44px'+(unlocked?' 28px':'')+';'
+        +'gap:8px;align-items:center;padding:7px 14px;border-bottom:1px solid var(--border);background:#fff;';
+
+      // Nombre
+      var lbl=document.createElement('div');
+      lbl.style.cssText='font-size:12px;color:var(--text);font-weight:500;line-height:1.3;';
+      if(unlocked){
+        var nameInp=document.createElement('input');
+        nameInp.type='text'; nameInp.value=item.n;
+        nameInp.style.cssText='width:100%;padding:4px 7px;border:1.5px solid var(--border);border-radius:5px;font-size:12px;font-family:inherit;background:#fafaf7;';
+        (function(cc,ii,el2){
+          el2.onchange=function(){if(CFG.insumos[cc]&&CFG.insumos[cc][ii]){CFG.insumos[cc][ii].n=this.value;}};
+        })(c,idx,nameInp);
+        lbl.appendChild(nameInp);
+      } else {
+        lbl.textContent=item.n;
+      }
+      row.appendChild(lbl);
+
+      // Precio
+      var priceCell=document.createElement('div');
+      if(unlocked){
+        var priceInp=document.createElement('input');
+        priceInp.type='number'; priceInp.value=item.price;
+        priceInp.style.cssText='width:100%;padding:5px 7px;border:1.5px solid var(--border);border-radius:5px;font-size:13px;font-weight:700;text-align:right;background:#fff;font-family:inherit;';
+        (function(cc,ii,el2){
+          el2.oninput=function(){
+            if(CFG.insumos[cc]&&CFG.insumos[cc][ii]){
+              CFG.insumos[cc][ii].price=parseFloat(this.value)||0;
+              renderCultivoResults(cc);
+            }
+          };
+        })(c,idx,priceInp);
+        priceCell.appendChild(priceInp);
+      } else {
+        priceCell.style.cssText='font-size:13px;font-weight:700;color:var(--text);text-align:right;font-variant-numeric:tabular-nums;';
+        priceCell.textContent='USD '+val;
+      }
+      row.appendChild(priceCell);
+
+      // %
+      var pctEl=document.createElement('span');
+      pctEl.style.cssText='font-size:12px;font-weight:700;color:'+pctColor
+        +';background:'+pctColor+'18;border-radius:5px;padding:2px 5px;text-align:center;display:block;';
+      pctEl.textContent=pct+'%';
+      row.appendChild(pctEl);
+
+      // Eliminar
+      if(unlocked){
+        var delBtn=document.createElement('button');
+        delBtn.innerHTML='&times;';
+        delBtn.style.cssText='width:26px;height:26px;background:var(--rojo-pale);color:var(--rojo);'
+          +'border:none;border-radius:6px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;';
+        (function(cc,ii){
+          delBtn.onclick=function(){delIns(cc,ii);renderCostEdit(cc);renderCultivoResults(cc);};
+        })(c,idx);
+        row.appendChild(delBtn);
+      }
+      cont.appendChild(row);
+    });
+  });
+
+  // ── Agregar nuevo producto (requiere estar desbloqueado) ──
+  if(unlocked){
+    var addSection=document.createElement('div');
+    addSection.style.cssText='padding:10px 14px;background:#f5f4f0;border-top:2px solid var(--verde-lt);';
+    addSection.innerHTML='<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">Agregar nuevo producto</div>'
+      +'<div style="display:grid;grid-template-columns:auto 1fr 80px 36px;gap:8px;align-items:center;">'
+      +'<select id="add-cat-'+c+'" style="padding:6px 8px;border:1.5px solid var(--verde-lt);border-radius:7px;font-size:12px;font-family:inherit;background:#fff;color:var(--verde);font-weight:600;">'
+      +CATS.map(function(ct){return '<option value="'+ct+'">'+ct+'</option>';}).join('')
+      +'</select>'
+      +'<input type="text" id="add-name-'+c+'" placeholder="Nombre del producto" style="padding:6px 9px;border:1.5px solid var(--verde-lt);border-radius:7px;font-size:12px;font-family:inherit;background:#fff;">'
+      +'<input type="number" id="add-price-'+c+'" placeholder="USD" style="padding:6px 8px;border:1.5px solid var(--verde-lt);border-radius:7px;font-size:12px;text-align:right;font-family:inherit;background:#fff;">'
+      +'<button onclick="addInsFromEdit(\''+c+'\')" style="width:36px;height:36px;background:var(--verde-mid);color:#fff;border:none;border-radius:7px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>'
+      +'</div>';
+    cont.appendChild(addSection);
+  } else {
+    var addHint=document.createElement('div');
+    addHint.style.cssText='padding:8px 14px;text-align:center;font-size:11px;color:var(--hint);border-top:1px solid var(--border);';
+    addHint.textContent='Desbloqueá para editar precios y agregar productos';
+    cont.appendChild(addHint);
+  }
+}
+
+// ── FULLSCREEN ──────────────────────────────
+function addInsFromEdit(c){
+  var cat  = (el('add-cat-'+c)   ? el('add-cat-'+c).value   : 'Otro');
+  var name = (el('add-name-'+c)  ? el('add-name-'+c).value  : '').trim() || 'Nuevo producto';
+  var price= (el('add-price-'+c) ? parseFloat(el('add-price-'+c).value)||0 : 0);
+  CFG.insumos[c] = CFG.insumos[c]||[];
+  CFG.insumos[c].push({n:name, cat:cat, qty:1, price:price});
+  renderCultivoResults(c);
+  renderCostEdit(c);
+}
+function toggleFS(){
+  const body=document.body;
+  const btn=el('fs-btn');
+  if(document.fullscreenElement||document.webkitFullscreenElement){
+    (document.exitFullscreen||document.webkitExitFullscreen).call(document);
+    body.classList.remove('fs-mode');
+    if(btn)btn.textContent='⛶';
+  } else {
+    const el2=document.documentElement;
+    const req=el2.requestFullscreen||el2.webkitRequestFullscreen;
+    if(req){req.call(el2);body.classList.add('fs-mode');if(btn)btn.textContent='✕';}
+  }
+}
+document.addEventListener('fullscreenchange',()=>{
+  if(!document.fullscreenElement){
+    document.body.classList.remove('fs-mode');
+    const btn=el('fs-btn');if(btn)btn.textContent='⛶';
+  }
+});
+
+// ═══════════════════════════════════════════════
+// INFORME POR PRODUCTOR
+// ═══════════════════════════════════════════════
+let camposInforme=[];
+let campoIdCnt=0;
+
+function renderInforme(){
+  if(camposInforme.length===0)addCampo();
+  renderCamposUI();
+}
+
+function addCampo(){
+  campoIdCnt++;
+  camposInforme.push({id:campoIdCnt,nombre:'',cultivo:'soja',has:100,tipo:'alquilado',arrQQ:CFG.arr['soja']||4});
+  renderCamposUI();
+}
+
+function delCampo(id){
+  camposInforme=camposInforme.filter(c=>c.id!==id);
+  renderCamposUI();
+}
+
+function updCampo(id,field,val){
+  const c=camposInforme.find(c=>c.id===id);
+  if(c)c[field]=val;
+}
+
+function updArrDefault(id,cultivo){
+  const c=camposInforme.find(c=>c.id===id);
+  if(c){c.cultivo=cultivo;c.arrQQ=CFG.arr[cultivo]||0;}
+  renderCamposUI();
+}
+
+function renderCamposUI(){
+  const cont=el('campos-container');
+  if(!cont)return;
+  cont.innerHTML=camposInforme.map((campo,idx)=>`
+    <div class="campo-card" id="campo-ui-${campo.id}">
+      <div class="campo-card-hdr">
+        <span class="campo-num">Campo ${idx+1}</span>
+        <button class="campo-del" onclick="delCampo(${campo.id})">×</button>
+      </div>
+      <div class="campo-grid">
+        <div class="campo-field"><label>Nombre del campo</label>
+          <input type="text" value="${campo.nombre}" placeholder="Ej: La Esperanza"
+            onchange="updCampo(${campo.id},'nombre',this.value)"></div>
+        <div class="campo-field"><label>Cultivo</label>
+          <select onchange="updCampo(${campo.id},'cultivo',this.value);updArrDefault(${campo.id},this.value)">
+            ${['soja','maiz','girasol','sorgo'].map(c=>`<option value="${c}" ${c===campo.cultivo?'selected':''}>${CNAMES[c]}</option>`).join('')}
+          </select></div>
+        <div class="campo-field"><label>Hectáreas</label>
+          <input type="number" value="${campo.has}" min="1"
+            onchange="updCampo(${campo.id},'has',parseFloat(this.value)||0)"></div>
+        <div class="campo-field"><label>Tenencia</label>
+          <select onchange="updCampo(${campo.id},'tipo',this.value)">
+            <option value="alquilado" ${campo.tipo==='alquilado'?'selected':''}>Alquilado</option>
+            <option value="propio" ${campo.tipo==='propio'?'selected':''}>Propio</option>
+          </select></div>
+        <div class="campo-field"><label>Arriendo (qq soja/ha)</label>
+          <input type="number" value="${campo.arrQQ}" step="0.5" min="0"
+            onchange="updCampo(${campo.id},'arrQQ',parseFloat(this.value)||0)"></div>
+        <div class="campo-field" style="justify-content:flex-end;">
+          <label style="color:transparent;">·</label>
+          <div style="font-size:10px;color:var(--muted);padding:7px 0;">
+            ${campo.tipo==='propio'?'Podés poner 0 si es propio':'USD/ha se calcula automáticamente'}
+          </div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function generarInforme(){
+  const nombre=el('inf-nombre')?.value||'Productor';
+  const zona=el('inf-zona')?.value||'';
+  const camp=el('inf-campana')?.value||'2026/27';
+  const fecha=new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'});
+  if(camposInforme.length===0){alert('Agregá al menos un campo.');return;}
+
+  const sojaQQ=CFG.precios.sojaRef/10;
+  let pages='';
+  const cultivosUsados=[...new Set(camposInforme.map(c=>c.cultivo))];
+
+  // Una página por campo
+  camposInforme.forEach(campo=>{
+    const cultivo=campo.cultivo;
+    const s={...CS[cultivo],arrQQ:campo.arrQQ};
+    const r=calcCultivo(cultivo,s);
+    const has=campo.has;
+    const diff=s.rinde-r.pe;
+    const mbTot=r.mb*has;
+    const clsBox=r.mb>30?'pos':r.mb<0?'neg':'warn';
+    const totalCostos=r.cf+r.arrH;
+    const cultColor={soja:'#7a5500',maiz:'#7a3800',girasol:'#7a5000',sorgo:'#5b2c6f'}[cultivo];
+    const cultBg={soja:'#fdf6e3',maiz:'#fef0e7',girasol:'#fef9e7',sorgo:'#f5eef8'}[cultivo];
+
+    const insList=CFG.insumos[cultivo]||[];
+    const rowsIns=insList.map(i=>{
+      const val=(parseFloat(i.price)||0)*(parseFloat(i.qty)||1);
+      const pct=totalCostos>0?Math.round(val/totalCostos*100):0;
+      return`<tr><td style="padding-left:14px;">${i.n}</td><td style="color:#7a7870;">${i.cat}</td>
+        <td>${usd(val)}</td><td>${usd(val*has)}</td><td>${pct}%</td></tr>`;
+    }).join('');
+
+    const labores=[
+      {n:'Pulverizaciones',v:r.pulvH},{n:'Siembra directa',v:s.siembra},
+      {n:'Cosecha contratista',v:r.cosechaH},{n:'Flete + comercializ.',v:r.fleteH+r.comH},
+      {n:'Costo de estructura',v:s.estr},
+    ].filter(x=>x.v>0);
+    const rowsLab=labores.map(({n,v})=>{
+      const pct=totalCostos>0?Math.round(v/totalCostos*100):0;
+      return`<tr><td style="padding-left:14px;">${n}</td><td style="color:#7a7870;">Labor/Servicio</td>
+        <td>${usd(v)}</td><td>${usd(v*has)}</td><td>${pct}%</td></tr>`;
+    }).join('');
+
+    pages+=`<div class="print-page">
+      <div class="print-logo-row">
+        <div><div class="print-brand">LEANDRO CASTELLANO</div><div class="print-brand-sub">Administrador de Empresas | Gestión Comercial Agropecuariapecuaria</div></div>
+        <div class="print-meta-right">Productor: <strong>${nombre}</strong><br>Zona: ${zona}<br>Campaña: ${camp} · ${fecha}</div>
+      </div>
+      <div class="print-cult-badge" style="background:${cultBg};color:${cultColor};">${CNAMES[cultivo].toUpperCase()} — MARGEN BRUTO</div>
+      <div class="print-campo-info">
+        <div><span>Campo: </span><strong>${campo.nombre||'Sin nombre'}</strong></div>
+        <div><span>Superficie: </span><strong>${has} ha</strong></div>
+        <div><span>Tenencia: </span><strong>${campo.tipo==='propio'?'Propio':'Alquilado'}</strong></div>
+        <div><span>Arriendo: </span><strong>${campo.arrQQ} qq soja = USD ${Math.round(campo.arrQQ*sojaQQ)}/ha</strong></div>
+      </div>
+      <div class="print-kpi-grid">
+        <div class="print-kpi"><div class="print-kpi-lbl">Rinde esperado</div><div class="print-kpi-val">${s.rinde} qq/ha</div></div>
+        <div class="print-kpi"><div class="print-kpi-lbl">Precio ${CNAMES[cultivo]}</div><div class="print-kpi-val">USD ${s.precio}/tn</div></div>
+        <div class="print-kpi"><div class="print-kpi-lbl">Punto de equilibrio</div><div class="print-kpi-val">${r.pe<9000?r.pe.toFixed(1):'N/D'} qq/ha</div></div>
+        <div class="print-kpi"><div class="print-kpi-lbl">Diferencia PE</div><div class="print-kpi-val ${diff>=0?'pos':'neg'}">${diff>=0?'+':''}${diff.toFixed(1)} qq</div></div>
+      </div>
+      <div class="print-total-box ${clsBox}">
+        <span class="print-total-lbl">MARGEN BRUTO / HA</span>
+        <span class="print-total-val">${usd(r.mb)}</span>
+      </div>
+      <div style="text-align:right;font-size:9pt;color:#7a7870;margin-bottom:5mm;">Margen total (${has} ha): <strong>${usd(Math.round(mbTot))}</strong></div>
+      <div class="print-section-title">Detalle de costos</div>
+      <table class="print-table">
+        <thead><tr><th>Concepto</th><th>Categoría</th><th>USD/ha</th><th>Total (${has} ha)</th><th>%</th></tr></thead>
+        <tbody>
+          <tr class="subtotal"><td colspan="5">Insumos base</td></tr>
+          ${rowsIns}
+          <tr class="subtotal"><td colspan="5">Labores y servicios</td></tr>
+          ${rowsLab}
+          <tr class="subtotal"><td colspan="5">Arrendamiento</td></tr>
+          <tr><td style="padding-left:14px;">Arriendo proporcional</td><td style="color:#7a7870;">Arrendamiento</td>
+            <td>${usd(r.arrH)}</td><td>${usd(r.arrH*has)}</td>
+            <td>${totalCostos>0?Math.round(r.arrH/totalCostos*100):0}%</td></tr>
+          <tr class="total-row"><td colspan="2">TOTAL COSTOS</td><td>${usd(totalCostos)}</td><td>${usd(totalCostos*has)}</td><td>100%</td></tr>
+        </tbody>
+      </table>
+      <div class="print-footer">
+        <span>Leandro Castellano · Consultoría · 351-512-5003</span>
+        <span>Valores estimativos · Campaña ${camp}</span>
+      </div>
+    </div>`;
+  });
+
+  // Página resumen
+  const totHas=camposInforme.reduce((a,c)=>a+c.has,0);
+  const resRows=cultivosUsados.map(cultivo=>{
+    const cc=camposInforme.filter(c=>c.cultivo===cultivo);
+    const ht=cc.reduce((a,c)=>a+c.has,0);
+    const mbP=calcCultivo(cultivo,CS[cultivo]).mb;
+    return`<tr><td><strong>${CNAMES[cultivo]}</strong></td><td>${cc.length}</td><td>${ht} ha</td>
+      <td>${usd(Math.round(mbP))}</td><td class="${mbP>=0?'pos':'neg'}">${usd(Math.round(mbP*ht))}</td></tr>`;
+  }).join('');
+
+  const mbTotal=Math.round(cultivosUsados.reduce((a,cultivo)=>{
+    const ht=camposInforme.filter(c=>c.cultivo===cultivo).reduce((x,y)=>x+y.has,0);
+    return a+calcCultivo(cultivo,CS[cultivo]).mb*ht;
+  },0));
+
+  // Resumen insumos
+  const insMap={};
+  cultivosUsados.forEach(cultivo=>{
+    const ht=camposInforme.filter(c=>c.cultivo===cultivo).reduce((x,y)=>x+y.has,0);
+    (CFG.insumos[cultivo]||[]).forEach(i=>{
+      const key=i.cat+'|'+i.n;
+      const val=(parseFloat(i.price)||0)*(parseFloat(i.qty)||1)*ht;
+      if(!insMap[key])insMap[key]={n:i.n,cat:i.cat,val:0};
+      insMap[key].val+=val;
+    });
+  });
+  const insRows=Object.values(insMap).sort((a,b)=>b.val-a.val)
+    .map(({n,cat,val})=>`<tr><td>${n}</td><td style="color:#7a7870;">${cat}</td><td>${usd(Math.round(val))}</td></tr>`)
+    .join('');
+
+  pages+=`<div class="print-page">
+    <div class="print-logo-row">
+      <div><div class="print-brand">LEANDRO CASTELLANO</div><div class="print-brand-sub">Administrador de Empresas | Gestión Comercial Agropecuariapecuaria</div></div>
+      <div class="print-meta-right">Productor: <strong>${nombre}</strong><br>Campaña: ${camp} · ${fecha}</div>
+    </div>
+    <div style="font-size:14pt;font-weight:800;color:#1a4731;margin-bottom:5mm;">Resumen General</div>
+    <div class="print-section-title">Resultados por cultivo</div>
+    <table class="print-table">
+      <thead><tr><th>Cultivo</th><th>Campos</th><th>Superficie</th><th>MB/ha</th><th>MB total</th></tr></thead>
+      <tbody>${resRows}
+        <tr class="total-row"><td>TOTAL</td><td>${camposInforme.length}</td><td>${totHas} ha</td><td>—</td><td>${usd(mbTotal)}</td></tr>
+      </tbody>
+    </table>
+    <div class="print-section-title" style="margin-top:6mm;">Inversión en insumos por producto</div>
+    <table class="print-table">
+      <thead><tr><th>Producto</th><th>Categoría</th><th>Inversión total</th></tr></thead>
+      <tbody>${insRows}</tbody>
+    </table>
+    <div class="print-footer">
+      <span>Leandro Castellano · Administrador de Empresas | Gestión Comercial Agropecuariapecuaria · 351-512-5003 · castellanomleandro@gmail.com</span>
+      <span>Valores estimativos · CREA Córdoba Norte</span>
+    </div>
+  </div>`;
+
+  const out=el('print-output');
+  if(out)out.innerHTML=pages;
+  window.print();
+}
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+
+// ── MODO SOLO LECTURA ──────────────────────────
+(function(){
+  var params=new URLSearchParams(window.location.search);
+  if(params.get('readonly')==='1'||params.get('ver')==='1'){
+    document.body.classList.add('readonly-mode');
+    // Ocultar pestaña ajustes del nav
+    document.querySelectorAll('.nav-tab.t-admin').forEach(function(el){el.style.display='none';});
+  }
+})();
+
+document.addEventListener('DOMContentLoaded', function(){
+  loadCFG();
+  initCS();
+  // Construir páginas de cultivo
+  const root=el('cultivos-root');
+  if(root)root.innerHTML=CIDS.map(c=>buildCultPage(c)).join('');
+  // Inicializar tracks
+  CIDS.forEach(c=>{
+    ['precio','rinde','flete','com','cosecha','siembra','estr','riego','seg','arr'].forEach(k=>{
+      updTrack(el('sl-'+k+'-'+c));
+    });
+  });
+  renderDash();
+});
+</script>
+</body>
+</html>
